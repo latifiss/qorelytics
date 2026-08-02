@@ -1,0 +1,116 @@
+{
+  "plans": [
+    {
+      "id": "free",
+      "name": "Free",
+      "price": {
+        "monthly": 0,
+        "yearly": 0
+      },
+      "description": "Perfect for getting started with basic analytics",
+      "ctaText": "Get Started",
+      "ctaVariant": "outline",
+      "features": [
+        {
+          "label": "Basic AI analysis",
+          "icon": "AIIcon"
+        },
+        {
+          "label": "10 uploads/month",
+          "icon": "FolderIcon"
+        },
+        {
+          "label": "10MB max file size",
+          "icon": "FileIcon"
+        },
+        {
+          "label": "PDF & Word Support",
+          "icon": "PDFIcon"
+        },
+        {
+          "label": "Basic charts & summaries",
+          "icon": "VisualizationIcon"
+        }
+      ]
+    },
+    {
+      "id": "pro",
+      "name": "Pro",
+      "price": {
+        "monthly": 19,
+        "yearly": 182
+      },
+      "description": "For professionals who need advanced analytics",
+      "ctaText": "Start Pro Trial",
+      "ctaVariant": "primary",
+      "features": [
+        {
+          "label": "Everything in Free",
+          "icon": "RoundCheckIcon"
+        },
+        {
+          "label": "Advanced AI analysis",
+          "icon": "AIIcon"
+        },
+        {
+          "label": "Unlimited uploads",
+          "icon": "FolderIcon"
+        },
+        {
+          "label": "70MB max file size",
+          "icon": "FileIcon"
+        },
+        {
+          "label": "Excel, CSV & JSON Support",
+          "icon": "ExcelIcon"
+        },
+        {
+          "label": "Unlimited AI prompts",
+          "icon": "AIIcon"
+        },
+        {
+          "label": "Analyze & Investigate modes",
+          "icon": "AnalyzeIcon"
+        }
+      ]
+    },
+    {
+      "id": "team",
+      "name": "Team",
+      "price": {
+        "monthly": 79,
+        "yearly": 758
+      },
+      "description": "For teams and enterprises needing full control",
+      "ctaText": "Start Team Trial",
+      "ctaVariant": "primary",
+      "features": [
+        {
+          "label": "Everything in Pro",
+          "icon": "RoundCheckIcon"
+        },
+        {
+          "label": "200MB file limits",
+          "icon": "FolderIcon"
+        },
+        {
+          "label": "Strategy mode with recommendations",
+          "icon": "StrategyIcon"
+        },
+        {
+          "label": "Competitor findings",
+          "icon": "GlobeIcon"
+        },
+        {
+          "label": "Team workspaces & API access",
+          "icon": "GlobeIcon"
+        },
+        {
+          "label": "SSO & Audit logs",
+          "icon": "RoundCheckIcon"
+        }
+      ]
+    }
+  ]
+}
+

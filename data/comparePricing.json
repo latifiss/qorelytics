@@ -1,0 +1,76 @@
+{
+  "features": [
+    {
+      "name": "AI Analysis",
+      "free": "Basic",
+      "pro": "Advanced",
+      "team": "Enterprise"
+    },
+    {
+      "name": "Uploads",
+      "free": "10/month",
+      "pro": "Unlimited",
+      "team": "Unlimited"
+    },
+    {
+      "name": "File Size Limit",
+      "free": "10MB",
+      "pro": "70MB",
+      "team": "200MB"
+    },
+    {
+      "name": "File Formats",
+      "free": "PDF, Word",
+      "pro": "Excel, CSV, JSON",
+      "team": "All formats"
+    },
+    {
+      "name": "AI Prompts",
+      "free": "Limited",
+      "pro": "Unlimited",
+      "team": "Unlimited"
+    },
+    {
+      "name": "Analysis Modes",
+      "free": "Basic",
+      "pro": "Analyze, Investigate",
+      "team": "All modes + Strategy"
+    },
+    {
+      "name": "Export Reports",
+      "free": false,
+      "pro": true,
+      "team": true
+    },
+    {
+      "name": "Data Connectors",
+      "free": false,
+      "pro": false,
+      "team": true
+    },
+    {
+      "name": "Team Workspaces",
+      "free": false,
+      "pro": false,
+      "team": true
+    },
+    {
+      "name": "API Access",
+      "free": false,
+      "pro": false,
+      "team": true
+    },
+    {
+      "name": "SSO & Audit Logs",
+      "free": false,
+      "pro": false,
+      "team": true
+    },
+    {
+      "name": "AI Agent Monitoring",
+      "free": false,
+      "pro": false,
+      "team": true
+    }
+  ]
+}

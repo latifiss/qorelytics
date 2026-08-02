@@ -1,0 +1,51 @@
+{
+  "title": "Refund Policy",
+  "lastUpdated": "2024-01-01",
+  "sections": [
+    {
+      "title": "1. Refund Policy Overview",
+      "content": "At Qorelytics, we stand behind our product and want you to be completely satisfied with your purchase. This Refund Policy outlines the terms and conditions under which we offer refunds for our services."
+    },
+    {
+      "title": "2. 14-Day Money-Back Guarantee",
+      "content": "We offer a 14-day money-back guarantee on all subscription plans. If you are not satisfied with our service within the first 14 days of your purchase, you may request a full refund. This guarantee applies to first-time purchases only."
+    },
+    {
+      "title": "3. Eligibility for Refunds",
+      "content": "To be eligible for a refund, you must request it within 14 days of your initial purchase. Refunds are processed to the original payment method used at the time of purchase. Any usage of the service during this period does not affect your eligibility."
+    },
+    {
+      "title": "4. How to Request a Refund",
+      "content": "To request a refund, please contact our support team at refunds@qorelytics.com with your account email and order details. Our team will process your request within 3-5 business days and notify you of the status of your refund."
+    },
+    {
+      "title": "5. Partial Refunds",
+      "content": "In some cases, we may offer partial refunds at our discretion. This may apply if you have used a significant portion of the service or if you are upgrading to a different plan. Partial refunds will be prorated based on usage."
+    },
+    {
+      "title": "6. Refunds for Annual Plans",
+      "content": "For annual subscription plans, refunds are prorated based on the remaining time in your subscription period. The 14-day money-back guarantee still applies, but after this period, refunds will be calculated on a prorated basis."
+    },
+    {
+      "title": "7. Refunds for Add-Ons",
+      "content": "Refunds for additional features, add-ons, or extra services purchased separately are subject to the same 14-day money-back guarantee. If you purchased an add-on and are not satisfied, you may request a refund within the same timeframe."
+    },
+    {
+      "title": "8. Processing Time",
+      "content": "Refunds are typically processed within 5-10 business days from the date of approval. The time it takes for the refund to appear in your account depends on your bank or payment provider. We will notify you once your refund has been processed."
+    },
+    {
+      "title": "9. Cancellations",
+      "content": "You may cancel your subscription at any time. If you cancel after the 14-day period, you will not receive a refund for the remaining time in your billing cycle. However, you will continue to have access to the service until the end of your current billing period."
+    },
+    {
+      "title": "10. Changes to This Policy",
+      "content": "We reserve the right to update or modify this refund policy at any time. Any changes will be posted on this page with an updated date. We encourage you to review this policy periodically."
+    },
+    {
+      "title": "11. Contact Us",
+      "content": "If you have any questions about our refund policy or need assistance with a refund request, please contact us at refunds@qorelytics.com. Our support team is here to help you."
+    }
+  ],
+  "footer": "By using Qorelytics, you acknowledge that you have read and understood our Refund Policy."
+}

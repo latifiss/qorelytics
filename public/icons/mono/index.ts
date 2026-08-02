@@ -1,0 +1,26 @@
+// index.ts
+
+export { default as PricingIcon } from './pricing'
+export { default as LoginIcon } from './login'
+export { default as ScanIcon } from './scan'
+export { default as NextIcon } from './next'
+export { default as CloseIcon } from './close'
+export { default as SendIcon } from './send'
+export { default as PlusIcon } from './plus'
+export { default as DownIcon } from './down'
+export { default as UpIcon } from './up'
+export { default as LeftIcon } from './left'
+export { default as RightIcon } from './right'
+export { default as InvestigateIcon } from './investigate'
+export { default as StrategyIcon } from './strategy'
+export { default as AnalyzeIcon } from './analyze'
+export { default as PointIcon } from './point'
+
+export { default as ArrowUpIcon } from './arrowUp'
+export { default as ArrowDownIcon } from './arrowDown'
+export { default as ArrowRightIcon } from './arrowRight'
+export { default as ArrowLeftIcon } from './arrowLeft'
+export { default as ArrowTopLeftIcon } from './arrowTopLeft'
+export { default as ArrowTopRightIcon } from './arrowTopRight'
+
+export { default as HamburgerMenuIcon } from './hamburger'

@@ -1,0 +1,51 @@
+{
+  "title": "Privacy Policy",
+  "lastUpdated": "2024-01-01",
+  "sections": [
+    {
+      "title": "1. Information We Collect",
+      "content": "We collect information you provide directly, such as when you create an account, upload data, or communicate with us. This includes your name, email address, company name, and any data you upload to our platform. We also collect usage data to improve our services."
+    },
+    {
+      "title": "2. How We Use Your Information",
+      "content": "We use your information to provide, maintain, and improve our services. This includes analyzing your data to generate insights, personalizing your experience, and communicating with you about updates or offers. We do not sell your personal information to third parties."
+    },
+    {
+      "title": "3. Data Storage and Security",
+      "content": "We implement industry-standard security measures to protect your data. Your data is encrypted both in transit and at rest. We regularly update our security protocols to safeguard against unauthorized access, disclosure, or destruction of your information."
+    },
+    {
+      "title": "4. Data Retention",
+      "content": "We retain your data for as long as your account is active or as needed to provide you with our services. You may request deletion of your data at any time. We will securely delete your data within a reasonable timeframe after your request."
+    },
+    {
+      "title": "5. Third-Party Sharing",
+      "content": "We do not share your personal information with third parties except as necessary to provide our services or as required by law. We may share aggregated, anonymized data for analytical purposes. Any third-party partners are contractually obligated to protect your data."
+    },
+    {
+      "title": "6. Your Rights",
+      "content": "You have the right to access, correct, update, or delete your personal information at any time. You can manage your account settings or contact us directly to exercise these rights. We will respond to your request within a reasonable timeframe."
+    },
+    {
+      "title": "7. Cookies and Tracking",
+      "content": "We use cookies and similar tracking technologies to enhance your experience, analyze usage, and personalize content. You can control cookie preferences through your browser settings. Disabling cookies may affect certain features of our service."
+    },
+    {
+      "title": "8. International Data Transfers",
+      "content": "Your information may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place to protect your data in accordance with applicable data protection laws."
+    },
+    {
+      "title": "9. Children's Privacy",
+      "content": "Our services are not directed to individuals under the age of 13. We do not knowingly collect personal information from children. If we discover that we have collected data from a child, we will delete it promptly."
+    },
+    {
+      "title": "10. Changes to This Policy",
+      "content": "We may update this privacy policy from time to time. We will notify you of any changes by posting the new policy on this page with an updated date. We encourage you to review this policy periodically."
+    },
+    {
+      "title": "11. Contact Us",
+      "content": "If you have questions about this privacy policy or our data practices, please contact us at privacy@qorelytics.com. We are committed to protecting your privacy and will address your concerns promptly."
+    }
+  ],
+  "footer": "By using Qorelytics, you consent to the collection and use of your information as described in this Privacy Policy."
+}

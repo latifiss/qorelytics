@@ -1,0 +1,292 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =========================
+// BETTER AUTH
+// =========================
+
+model User {
+  id            String  @id
+  name          String
+  email         String
+  emailVerified Boolean @default(false)
+  image         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions Session[]
+  accounts Account[]
+
+  profile       Profile?
+  datasets      Dataset[]
+  preferences   UserPreference?
+  chatSessions  ChatSession[]
+  notifications Notification[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ipAddress String?
+  userAgent String?
+
+  userId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id         String @id
+  accountId  String
+  providerId String
+
+  userId String
+
+  accessToken  String?
+  refreshToken String?
+  idToken      String?
+
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+
+  scope    String?
+  password String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id String @id
+
+  identifier String
+  value      String
+
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// =========================
+// USER PROFILE
+// =========================
+
+model Profile {
+  id String @id @default(cuid())
+
+  userId String @unique
+
+  role        String?
+  industry    String?
+  companySize String?
+
+  onboardingCompleted Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// =========================
+// DATASETS
+// =========================
+
+model Dataset {
+  id String @id @default(cuid())
+
+  userId String
+
+  name String
+
+  originalFileName String
+
+  fileUrl String
+
+  fileType String
+
+  fileSize Int
+
+  status DatasetStatus @default(PENDING)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  analyses Analysis[]
+
+  chatSessions ChatSession[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// =========================
+// AI ANALYSIS
+// =========================
+
+model Analysis {
+  id String @id @default(cuid())
+
+  datasetId String
+
+  provider String
+
+  model String
+
+  prompt String?
+
+  result Json?
+
+  status AnalysisStatus @default(PENDING)
+
+  dataset Dataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([datasetId])
+}
+
+// =========================
+// AI CHAT
+// =========================
+
+model ChatSession {
+  id String @id @default(cuid())
+
+  userId String
+
+  datasetId String
+
+  title String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  dataset Dataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+
+  messages Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Message {
+  id String @id @default(cuid())
+
+  sessionId String
+
+  role MessageRole
+
+  content String
+
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+// =========================
+// AI SETTINGS
+// =========================
+
+model UserPreference {
+  id String @id @default(cuid())
+
+  userId String @unique
+
+  preferredProvider String @default("openrouter")
+
+  preferredModel String @default("deepseek")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+}
+
+// =========================
+// NOTIFICATIONS
+// =========================
+
+model Notification {
+  id String @id @default(cuid())
+
+  userId String
+
+  type String
+
+  title String
+
+  message String
+
+  read Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// =========================
+// ENUMS
+// =========================
+
+enum DatasetStatus {
+  PENDING
+
+  PROCESSING
+
+  COMPLETED
+
+  FAILED
+}
+
+enum AnalysisStatus {
+  PENDING
+
+  RUNNING
+
+  COMPLETED
+
+  FAILED
+}
+
+enum MessageRole {
+  USER
+
+  ASSISTANT
+}
