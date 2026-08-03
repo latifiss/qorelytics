@@ -56,6 +56,9 @@ export interface AnalystResponseProps {
    * used by response generation
    */
   scrollRef?: React.RefObject<HTMLDivElement | null>;
+
+  /** When false, skip the analysis report card (follow-up messages). */
+  showReport?: boolean;
 }
 
 
