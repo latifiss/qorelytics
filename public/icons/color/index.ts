@@ -19,3 +19,6 @@ export { default as RoundCheckIcon } from './roundcheck'
 
 export { default as Icon404 } from './404'
 export { default as CookieIcon } from './cookie'
+
+export { default as SigIcon } from './sig'
+export { default as ChxIcon } from './chx'

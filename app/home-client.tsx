@@ -1,79 +1,392 @@
 "use client";
 
-import { useState } from "react";
-import { useTheme } from "@/context/themeContext";
-import SelectionModal from "@/components/ui/selectionModal";
+import { useCallback, useRef, useState } from "react";
+
 import Input from "@/components/ui/input";
-import Response from "@/components/ui/response";
-import BlogCard from "@/components/ui/blogCard";
+import AnalystChat from "@/components/ui/analystChat";
+import SelectionModal from "@/components/ui/selectionModal";
 
-function ThemeSwitcher() {
-  const { theme, toggleTheme } = useTheme();
 
-  return (
-    <button
-      type="button"
-      onClick={toggleTheme}
-      className="rounded-full border border-border bg-surface-elevated px-4 py-2 text-sm font-medium text-foreground transition hover:bg-surface-muted"
-    >
-      {theme === "light" ? "Switch to dark" : "Switch to light"}
-    </button>
-  );
+interface HomeClientProps {
+  userName?: string;
 }
 
-export default function Home() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [response, setResponse] = useState('');
-const [isStreaming, setIsStreaming] = useState(false);
 
-  const handleFileSelect = (file: File, type: string) => {
-    console.log('Selected file:', file, 'Type:', type);
+
+const sampleResponse = `
+I analyzed your customer sales dataset.
+
+The analysis shows strong growth, but there are opportunities to improve customer retention.
+
+Below is the generated analysis report.
+`;
+
+
+
+export default function Home({
+  userName,
+}: HomeClientProps) {
+
+
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const userScrolledUpRef = useRef(false);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [userMessage, setUserMessage] = useState("");
+
+  const [started, setStarted] = useState(false);
+
+  const scrollToBottom = useCallback((instant = true) => {
+    const el = scrollRef.current;
+    if (!el || userScrolledUpRef.current) return;
+
+    const maxScrollTop = el.scrollHeight - el.clientHeight;
+
+    el.scrollTo({
+      top: maxScrollTop,
+      behavior: instant ? "auto" : "smooth",
+    });
+  }, []);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const distanceFromBottom =
+      el.scrollHeight - el.scrollTop - el.clientHeight;
+
+    userScrolledUpRef.current = distanceFromBottom > 120;
+  }, []);
+
+  const handleStreamingUpdate = useCallback(() => {
+    requestAnimationFrame(() => {
+      scrollToBottom(true);
+    });
+  }, [scrollToBottom]);
+
+  const handleSubmit = (
+    text: string,
+    mode: string,
+    file?: File
+  ) => {
+
+
+    if (!text && !file) return;
+
+
+    setUserMessage(
+      text || `Analyze ${file?.name}`
+    );
+
+
+    setStarted(true);
+
+
+    userScrolledUpRef.current = false;
+
+    requestAnimationFrame(() => {
+      scrollToBottom(true);
+    });
   };
 
+
+
+
+
+
+
   return (
-    <div className="flex flex-col bg-background font-text transition-colors min-h-screen p-8 relative">
-      <Response isStreaming={true} />
-      <div className="w-full max-w-2xl mx-auto flex-1 pb-32">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <BlogCard
-  title="Close Friends Only: J Balvin & Ryan Castro Talk New Album"
-  date="2026-06-30"
-  imageUrl="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8c21hbGwlMjBidXNpbmVzc3xlbnwwfHwwfHx8MA%3D%3D"
-  tags={['announcement']}
-/>
 
-<BlogCard
-  title="Mastering Data Visualization in 2026"
-  date="2026-07-15"
-  imageUrl="https://images.unsplash.com/photo-1556740772-1a741367b93e?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTZ8fHNtYWxsJTIwYnVzaW5lc3N8ZW58MHx8MHx8fDA%3D"
-  tags={['tutorials', 'visualization', 'trends']}
-/>
-            <h1 className="text-3xl font-display font-bold text-foreground">Upload File</h1>
-            <p className="text-muted mt-1">Select a file type to upload</p>
+    <div className="
+      fixed
+      top-[78px]
+      lg:top-0
+      right-0
+      bottom-0
+      left-0
+      lg:left-80
+      flex
+      flex-col
+      overflow-hidden
+      bg-background
+    ">
+
+
+
+      <div
+
+        ref={scrollRef}
+
+        onScroll={handleScroll}
+
+        className="
+          flex-1
+          min-h-0
+          overflow-y-auto
+          pt-8
+          px-4
+          scrollbar-thin
+          scrollbar-track-transparent
+          scrollbar-thumb-muted
+          hover:scrollbar-thumb-foreground
+        "
+
+      >
+
+
+        <div className="
+          max-w-2xl
+          mx-auto
+          w-full
+        ">
+
+
+        {!started && (
+
+          <div className="
+            mb-12
+            mt-20
+            text-center
+          ">
+
+
+            <h1 className="
+              text-3xl
+              md:text-4xl
+              font-display
+              font-bold
+              text-foreground
+            ">
+
+
+              {
+                userName ? (
+
+                  <>
+
+                    <span className="rainbow-text">
+
+                      Hey {userName.split(" ")[0]}
+
+                    </span>
+
+
+                    <br />
+
+
+                    <span className="text-2xl">
+
+                      What are you analyzing today?
+
+                    </span>
+
+                  </>
+
+
+                )
+
+                :
+
+                (
+
+                  <>
+                    What are you analyzing today?
+                  </>
+
+                )
+
+              }
+
+
+            </h1>
+
+
+
+
+
+            <p className="
+              mt-2
+              text-muted
+              text-sm
+            ">
+
+              Upload your data and let Qorelytics uncover insights.
+
+            </p>
+
+
           </div>
-          <ThemeSwitcher />
+
+        )}
+
+
+
+
+
+
+
+        {
+          started && (
+
+            <>
+
+              {/* USER MESSAGE */}
+
+              <div className="
+                mb-6
+                w-full
+                flex
+                justify-end
+              ">
+
+
+                <div
+
+                  className="
+                    max-w-[80%]
+                    px-4
+                    py-3
+                    border
+                    border-subtle
+                    rounded-none
+                    text-sm
+                    text-foreground
+                    leading-relaxed
+                    whitespace-pre-wrap
+                  "
+
+                  style={{
+                    backgroundColor:
+                      "var(--fill-alpha-subtle)",
+                  }}
+
+                >
+
+                  {userMessage}
+
+                </div>
+
+
+              </div>
+
+
+
+
+
+
+
+
+              {/* AI RESPONSE */}
+
+              <AnalystChat
+
+                content={sampleResponse}
+
+                isStreaming={true}
+
+                scrollRef={scrollRef}
+
+
+                onStreamingUpdate={
+                  handleStreamingUpdate
+                }
+
+
+                onCopy={()=>{
+                  console.log("copied");
+                }}
+
+
+                onRegenerate={()=>{}}
+
+
+              />
+
+
+              <div
+                className="h-[220px] shrink-0"
+                aria-hidden
+              />
+
+
+            </>
+
+          )
+        }
+
+
         </div>
 
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="w-full py-4 px-6 rounded-2xl border-2 border-dashed border-subtle bg-surface hover:border-border hover:bg-surface-muted transition-all duration-200 text-foreground font-medium"
-        >
-          Click to select file type
-        </button>
+
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 z-50 bg-background">
-        <div className="w-full max-w-2xl mx-auto px-4 pb-5">
-          <Input />
+
+
+
+
+
+
+
+      <div className="
+        fixed
+        bottom-0
+        left-0
+        right-0
+        lg:left-80
+        bg-gradient-to-t
+        from-background
+        via-background/95
+        to-transparent
+        pt-8
+        pb-4
+        px-4
+        z-40
+      ">
+
+
+        <div className="
+          max-w-2xl
+          mx-auto
+        ">
+
+
+          <Input
+
+            onSubmit={handleSubmit}
+
+          />
+
+
         </div>
+
+
       </div>
+
+
+
+
+
+
+
+
 
       <SelectionModal
+
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSelect={handleFileSelect}
+
+        onClose={() =>
+          setIsModalOpen(false)
+        }
+
+        onSelect={()=>{}}
+
       />
+
+
+
     </div>
+
   );
+
 }

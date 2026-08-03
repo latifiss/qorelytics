@@ -6,7 +6,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: openrouter("openai/gpt-4.1-mini"),
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
 
     system: `
 You are Qorelytics AI.

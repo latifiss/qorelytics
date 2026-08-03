@@ -102,7 +102,8 @@ const Banner: React.FC<BannerProps> = ({
   'pb-4 pt-4 px-4',
   'border-t border-l border-r border-subtle',
   'rounded-t-2xl',
-  'border-b-0',
+            'border-b-0',
+  'bg-white dark:bg-black',
   className
 )}
         >

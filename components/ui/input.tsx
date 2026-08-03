@@ -223,22 +223,23 @@ const Input: React.FC<InputProps> = ({
     </div>
   );
 
-  if (fixed) {
-    return (
-      <>
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-background">
-          <div className="max-w-4xl mx-auto px-4 mb-0">
-            {inputContent}
-          </div>
+  // In the Input component, update the fixed return:
+if (fixed) {
+  return (
+    <>
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background">
+        <div className="max-w-2xl mx-auto px-4 mb-0">
+          {inputContent}
         </div>
-        <SelectionModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onSelect={handleFileSelect}
-        />
-      </>
-    );
-  }
+      </div>
+      <SelectionModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSelect={handleFileSelect}
+      />
+    </>
+  );
+}
 
   return (
     <>

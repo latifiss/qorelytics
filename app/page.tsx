@@ -31,7 +31,10 @@ export default async function Home() {
   }
 
 
+
   return (
-    <HomeClient />
+    <HomeClient
+      userName={session.user.name}
+    />
   );
 }
