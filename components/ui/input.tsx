@@ -15,6 +15,7 @@ interface InputProps {
   className?: string;
   placeholder?: string;
   fixed?: boolean;
+  disabled?: boolean;
 }
 
 interface SelectedFile {
@@ -29,6 +30,7 @@ const Input: React.FC<InputProps> = ({
   className = '',
   placeholder = 'Ask anything...',
   fixed = false,
+  disabled = false,
 }) => {
   const [text, setText] = useState('');
   const [selectedMode, setSelectedMode] = useState<'investigate' | 'strategy' | 'analyze'>('analyze');
@@ -63,8 +65,16 @@ const Input: React.FC<InputProps> = ({
   };
 
   const handleSubmit = () => {
+    if (disabled) return;
+
     if (text.trim() || selectedFile) {
       onSubmit?.(text, selectedMode, selectedFile?.file);
+      setText('');
+      setSelectedFile(null);
+
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
     }
   };
 
@@ -132,10 +142,12 @@ const Input: React.FC<InputProps> = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             rows={1}
+            disabled={disabled}
             className={cn(
               'w-full resize-none bg-transparent text-foreground placeholder:text-muted',
               'focus:outline-none font-text text-base leading-relaxed',
-              'min-h-6 max-h-50'
+              'min-h-6 max-h-50',
+              disabled && 'opacity-50 cursor-not-allowed'
             )}
             style={{ height: 'auto' }}
           />
@@ -207,7 +219,7 @@ const Input: React.FC<InputProps> = ({
 
           <button
             onClick={handleSubmit}
-            disabled={!isActive}
+            disabled={!isActive || disabled}
             className={cn(
               'p-2 rounded-full transition-all duration-200',
               getButtonBg()

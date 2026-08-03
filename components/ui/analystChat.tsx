@@ -13,6 +13,7 @@ interface AnalystChatProps {
   onRegenerate?: () => void;
   scrollRef?: RefObject<HTMLDivElement | null>;
   onStreamingUpdate?: () => void;
+  onStreamingComplete?: () => void;
 }
 
 
@@ -24,6 +25,7 @@ export default function AnalystChat({
   onRegenerate,
   scrollRef,
   onStreamingUpdate,
+  onStreamingComplete,
 }: AnalystChatProps) {
 
 
@@ -88,6 +90,7 @@ export default function AnalystChat({
 
             onRegenerate={onRegenerate}
 
+            onStreamingComplete={onStreamingComplete}
 
           />
 

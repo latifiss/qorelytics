@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from "react";
 
 import Input from "@/components/ui/input";
 import AnalystChat from "@/components/ui/analystChat";
+import AnalystResponse from "@/components/ui/analystResponse";
 import SelectionModal from "@/components/ui/selectionModal";
 
 
@@ -11,7 +12,11 @@ interface HomeClientProps {
   userName?: string;
 }
 
-
+interface ChatTurn {
+  id: string;
+  userMessage: string;
+  response: string;
+}
 
 const sampleResponse = `
 I analyzed your customer sales dataset.
@@ -19,6 +24,14 @@ I analyzed your customer sales dataset.
 The analysis shows strong growth, but there are opportunities to improve customer retention.
 
 Below is the generated analysis report.
+`;
+
+const getFollowUpResponse = (message: string) => `
+Thanks for your follow-up.
+
+Based on the analysis so far, retention dips correlate with onboarding friction in weeks 2–3. I'd recommend A/B testing a simplified checkout flow and segmenting cohorts by acquisition channel to isolate the drop-off.
+
+Happy to dig deeper into any segment or metric.
 `;
 
 
@@ -33,9 +46,11 @@ export default function Home({
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const [userMessage, setUserMessage] = useState("");
+  const [turns, setTurns] = useState<ChatTurn[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const [started, setStarted] = useState(false);
+  const started = turns.length > 0;
+  const latestTurn = turns.at(-1);
 
   const scrollToBottom = useCallback((instant = true) => {
     const el = scrollRef.current;
@@ -65,24 +80,32 @@ export default function Home({
     });
   }, [scrollToBottom]);
 
+  const handleTurnComplete = useCallback(() => {
+    setIsGenerating(false);
+  }, []);
+
   const handleSubmit = (
     text: string,
     mode: string,
     file?: File
   ) => {
+    if ((!text && !file) || isGenerating) return;
 
+    const message = text || `Analyze ${file?.name}`;
+    const isFollowUp = turns.length > 0;
 
-    if (!text && !file) return;
+    setTurns((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        userMessage: message,
+        response: isFollowUp
+          ? getFollowUpResponse(message)
+          : sampleResponse,
+      },
+    ]);
 
-
-    setUserMessage(
-      text || `Analyze ${file?.name}`
-    );
-
-
-    setStarted(true);
-
-
+    setIsGenerating(true);
     userScrolledUpRef.current = false;
 
     requestAnimationFrame(() => {
@@ -231,14 +254,19 @@ export default function Home({
 
             <>
 
-              {/* USER MESSAGE */}
+              {turns.map((turn) => {
+                const isLatest = turn.id === latestTurn?.id;
 
-              <div className="
-                mb-6
-                w-full
-                flex
-                justify-end
-              ">
+                return (
+                  <div key={turn.id} className="space-y-6">
+                    {/* USER MESSAGE */}
+
+                    <div className="
+                      mb-6
+                      w-full
+                      flex
+                      justify-end
+                    ">
 
 
                 <div
@@ -263,7 +291,7 @@ export default function Home({
 
                 >
 
-                  {userMessage}
+                        {turn.userMessage}
 
                 </div>
 
@@ -279,30 +307,43 @@ export default function Home({
 
               {/* AI RESPONSE */}
 
-              <AnalystChat
+              {isLatest ? (
+                <AnalystChat
 
-                content={sampleResponse}
+                  content={turn.response}
 
-                isStreaming={true}
+                  isStreaming={true}
 
-                scrollRef={scrollRef}
-
-
-                onStreamingUpdate={
-                  handleStreamingUpdate
-                }
+                  scrollRef={scrollRef}
 
 
-                onCopy={()=>{
-                  console.log("copied");
-                }}
+                  onStreamingUpdate={handleStreamingUpdate}
+
+                  onStreamingComplete={handleTurnComplete}
+
+                  onCopy={() => {
+                    console.log("copied");
+                  }}
 
 
-                onRegenerate={()=>{}}
+                  onRegenerate={() => {}}
 
 
-              />
+                />
+              ) : (
+                <AnalystResponse
+                  content={turn.response}
+                  isStreaming={false}
+                  onCopy={() => {
+                    console.log("copied");
+                  }}
+                  onRegenerate={() => {}}
+                />
+              )}
 
+                  </div>
+                );
+              })}
 
               <div
                 className="h-[220px] shrink-0"
@@ -354,6 +395,14 @@ export default function Home({
           <Input
 
             onSubmit={handleSubmit}
+
+            disabled={isGenerating}
+
+            placeholder={
+              started
+                ? "Ask a follow-up..."
+                : "Ask anything..."
+            }
 
           />
 
