@@ -126,27 +126,31 @@ model Dataset {
   userId String
 
   name String
-
   originalFileName String
 
   fileUrl String
-
   fileType String
-
   fileSize Int
 
+  rowCount Int @default(0)
+  columnCount Int @default(0)
+
+  profile Json?
+
   status DatasetStatus @default(PENDING)
+
+  errorMessage String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   analyses Analysis[]
-
   chatSessions ChatSession[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+  @@index([userId, createdAt])
 }
 
 // =========================
@@ -159,7 +163,6 @@ model Analysis {
   datasetId String
 
   provider String
-
   model String
 
   prompt String?
@@ -168,12 +171,18 @@ model Analysis {
 
   status AnalysisStatus @default(PENDING)
 
+  errorMessage String?
+
+  startedAt DateTime?
+  completedAt DateTime?
+
   dataset Dataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([datasetId])
+  @@index([datasetId, createdAt])
 }
 
 // =========================
