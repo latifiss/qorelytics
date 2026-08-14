@@ -115,6 +115,7 @@ export default function IntroPage() {
                   lg:text-7xl 
                   font-semibold 
                   leading-[1.05] 
+                  -mt-0.5
                   -mb-3
                 "
               >
@@ -209,17 +210,25 @@ export default function IntroPage() {
                   pt-1
                 "
               >
-                {stats.map((item) => (
-                  <div key={item.label}>
-                    <h3 className="text-2xl sm:text-3xl font-semibold">
-                      {item.value}
-                    </h3>
+               {stats.map((item, index) => (
+  <div key={item.label}>
+    <h3
+      className={`text-2xl sm:text-3xl font-semibold ${
+        (index === 1 || index === 2) ? "text-white sm:text-inherit" : ""
+      }`}
+    >
+      {item.value}
+    </h3>
 
-                    <p className="text-xs sm:text-sm text-neutral-500 -mt-1">
-                      {item.label}
-                    </p>
-                  </div>
-                ))}
+    <p
+      className={`text-xs sm:text-sm text-neutral-500 -mt-1 ${
+        (index === 1 || index === 2) ? "text-white sm:text-neutral-500" : ""
+      }`}
+    >
+      {item.label}
+    </p>
+  </div>
+))}
               </motion.div>
 
             </motion.div>
