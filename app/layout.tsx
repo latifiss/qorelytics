@@ -15,7 +15,27 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased overflow-hidden">
+    <html lang="en" className="h-full antialiased overflow-hidden" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                const saved = localStorage.getItem('theme');
+                const isDark = saved 
+                  ? saved === 'dark'
+                  : window.matchMedia('(prefers-color-scheme: dark)').matches;
+                
+                if (isDark) {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className="h-full flex flex-col bg-background text-foreground font-text transition-colors overflow-hidden">
         <Providers>
           <LayoutWrapper>

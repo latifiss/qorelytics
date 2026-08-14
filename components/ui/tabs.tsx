@@ -73,7 +73,7 @@ const Tabs: React.FC<TabsProps> = ({
         return `
           relative
           flex-1
-          px-6
+          px-4
           py-3
           text-sm
           font-medium
@@ -92,7 +92,7 @@ const Tabs: React.FC<TabsProps> = ({
         return `
           relative
           flex-1
-          px-6
+          px-4
           py-3
           rounded-2xl
           text-sm
