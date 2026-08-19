@@ -102,16 +102,16 @@ export default function Home({ userName }: HomeClientProps) {
   };
 
   return (
-    <div className="fixed top-[78px] lg:top-0 right-0 bottom-0 left-0 lg:left-80 flex flex-col overflow-hidden bg-background">
+    <div className="fixed top-19.5 lg:top-0 right-0 bottom-0 left-0 lg:left-80 flex flex-col overflow-hidden bg-white dark:bg-[#171b1d]">
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 min-h-0 overflow-y-auto pt-8 px-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted hover:scrollbar-thumb-foreground"
+        className="flex-1 min-h-0 overflow-y-auto pt-8 px-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-300 dark:scrollbar-thumb-neutral-700 hover:scrollbar-thumb-neutral-500 dark:hover:scrollbar-thumb-neutral-500"
       >
         <div className="max-w-2xl mx-auto w-full">
           {!started && (
             <div className="mb-12 mt-20 text-center">
-              <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+              <h1 className="text-3xl md:text-4xl font-display font-bold text-neutral-900 dark:text-white">
                 {userName ? (
                   <>
                     <span className="rainbow-text">
@@ -126,7 +126,7 @@ export default function Home({ userName }: HomeClientProps) {
                   <>What are you analyzing today?</>
                 )}
               </h1>
-              <p className="mt-2 text-muted text-sm">
+              <p className="mt-2 text-neutral-500 dark:text-neutral-400 text-sm">
                 Upload your data and let Qorelytics uncover insights.
               </p>
             </div>
@@ -142,8 +142,7 @@ export default function Home({ userName }: HomeClientProps) {
                   <div key={turn.id} className="space-y-6">
                     <div className="w-full flex justify-end">
                       <div
-                        className="max-w-[80%] px-4 py-3 border border-subtle rounded-none text-sm text-foreground leading-relaxed whitespace-pre-wrap"
-                        style={{ backgroundColor: 'var(--fill-alpha-subtle)' }}
+                        className="max-w-[80%] px-4 py-3 border border-neutral-200 dark:border-neutral-800 rounded-none text-sm text-neutral-900 dark:text-white leading-relaxed whitespace-pre-wrap bg-neutral-50 dark:bg-neutral-900/50"
                       >
                         {turn.userMessage}
                       </div>
@@ -167,13 +166,13 @@ export default function Home({ userName }: HomeClientProps) {
                 );
               })}
 
-              <div ref={bottomRef} className="h-[240px] shrink-0" aria-hidden />
+              <div ref={bottomRef} className="h-60 shrink-0" aria-hidden />
             </div>
           )}
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 lg:left-80 bg-gradient-to-t from-background via-background/95 to-transparent pt-8 pb-4 px-4 z-40">
+      <div className="fixed bottom-0 left-0 right-0 lg:left-80 bg-linear-to-t from-white dark:from-[#171b1d] via-white/95 dark:via-[#171b1d]/95 to-transparent pt-8 pb-4 px-4 z-40">
         <div className="max-w-2xl mx-auto">
           <Input
             onSubmit={handleSubmit}

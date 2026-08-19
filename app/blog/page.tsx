@@ -44,15 +44,16 @@ export default async function BlogPage() {
         md:px-10
         lg:px-12
         xl:px-20
+        bg-white dark:bg-[#171b1d]
       "
     >
-      <h1 className="text-5xl font-bold font-text text-black mb-12">
+      <h1 className="text-5xl font-bold font-text text-black dark:text-white mb-12">
         Read Our Blog
       </h1>
 
       {blogPosts.length === 0 ? (
         <div className="flex items-center justify-center min-h-[50vh]">
-          <p className="text-lg text-black/60 font-text">
+          <p className="text-lg text-black/60 dark:text-white/60 font-text">
             No blogs yet
           </p>
         </div>

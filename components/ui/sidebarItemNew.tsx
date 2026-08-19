@@ -23,7 +23,7 @@ const SidebarItemNew: React.FC<SidebarItemNewProps> = ({
 
   const getTextStyles = () => {
     if (isDesktop) {
-      return 'text-[40px] text-foreground';
+      return 'text-[40px] text-neutral-900 dark:text-white';
     } else {
       return 'text-[64px] text-white';
     }
@@ -32,7 +32,7 @@ const SidebarItemNew: React.FC<SidebarItemNewProps> = ({
   const getIconStyles = () => {
     const baseStyles = 'ml-2';
     if (isDesktop) {
-      return `${baseStyles} text-foreground`;
+      return `${baseStyles} text-neutral-900 dark:text-white`;
     } else {
       return `${baseStyles} text-white`;
     }
@@ -40,7 +40,7 @@ const SidebarItemNew: React.FC<SidebarItemNewProps> = ({
 
   const getIconColor = () => {
     if (isDesktop) {
-      return 'var(--text-primary)';
+      return undefined;
     } else {
       return '#ffffff';
     }

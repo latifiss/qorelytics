@@ -54,8 +54,8 @@ const ModeButton: React.FC<ModeButtonProps> = ({
       className={cn(
         'inline-flex items-center gap-1.5 px-4 py-2 h-10.5 rounded-full border text-sm font-medium transition-colors duration-200',
         isSelected
-          ? 'bg-transparent text-black border border-subtle shadow-none dark:bg-black dark:text-white dark:border-0 dark:shadow-none'
-          : 'bg-transparent text-muted border-subtle hover:text-foreground hover:border-border dark:hover:text-white',
+          ? 'bg-transparent text-neutral-900 dark:text-white border border-neutral-200 dark:border-neutral-700 shadow-none'
+          : 'bg-transparent text-neutral-500 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-800 hover:text-neutral-900 dark:hover:text-white hover:border-neutral-300 dark:hover:border-neutral-700',
         className
       )}
     >

@@ -33,7 +33,7 @@ const TAG_CONFIG: Record<TagType, { label: string; colorClass: string }> = {
 const Tag = ({ type }: { type: TagType }) => {
   const config = TAG_CONFIG[type]
   return (
-    <span className={`flex items-center justify-center text-xs font-medium text-black py-1 px-2 rounded-lg h-7 tablet:h-[25px] mobile:h-[25px] ${config.colorClass}`}>
+    <span className={`flex items-center justify-center text-xs font-medium text-black dark:text-white py-1 px-2 rounded-lg h-7 tablet:h-[25px] mobile:h-[25px] ${config.colorClass}`}>
       {config.label}
     </span>
   )
@@ -80,63 +80,62 @@ const ArticleDetail = ({
   }
 
   return (
-    <article className={`max-w-4xl mx-auto px-6 py-12 ${className}`}>
+    <article className={`max-w-4xl mx-auto px-6 py-12 min-h-screen bg-white dark:bg-[#171b1d] ${className}`}>
       <div className='flex flex-col items-start gap-6'>
         <TagGroup tags={tags} />
         
-        <h1 className='text-5xl font-bold text-black leading-tight tablet:text-4xl mobile:text-3xl'>
+        <h1 className='text-5xl font-bold text-black dark:text-white leading-tight tablet:text-4xl mobile:text-3xl'>
           {title}
         </h1>
         
         <div className='flex items-center justify-between w-full flex-wrap gap-4'>
           <div className='flex items-center justify-start gap-4'>
-            
             <div className='flex items-center justify-start gap-1'>
-                <ClockIcon size={16} color='#13151B' />
-                <time className='text-sm font-regular text-black' dateTime={date}>
-                  {formattedDate}
-                </time>
-              </div>
+              <ClockIcon size={16} color='#13151B' className='text-black dark:text-white' />
+              <time className='text-sm font-regular text-black dark:text-white' dateTime={date}>
+                {formattedDate}
+              </time>
+            </div>
           </div>
           
           <div className='flex items-center gap-2'>
-  <a
-    href={shareLinks.facebook}
-    target="_blank"
-    rel="noopener noreferrer"
-    className='p-2 hover:bg-gray-100 rounded-full transition-colors'
-    aria-label='Share on Facebook'
-  >
-    <Image src='/social/facebook.svg' alt='Facebook' width={32} height={32} />
-  </a>
-  <a
-    href={shareLinks.twitter}
-    target="_blank"
-    rel="noopener noreferrer"
-    className='p-2 hover:bg-gray-100 rounded-full transition-colors'
-    aria-label='Share on Twitter'
-  >
-    <Image src='/social/x.svg' alt='Twitter' width={32} height={32} />
-  </a>
-  <a
-    href={shareLinks.linkedin}
-    target="_blank"
-    rel="noopener noreferrer"
-    className='p-2 hover:bg-gray-100 rounded-full transition-colors'
-    aria-label='Share on LinkedIn'
-  >
-    <Image src='/social/linkedin.svg' alt='LinkedIn' width={32} height={32} />
-  </a>
-  <a
-    href={shareLinks.reddit}
-    target="_blank"
-    rel="noopener noreferrer"
-    className='p-2 hover:bg-gray-100 rounded-full transition-colors'
-    aria-label='Share on Reddit'
-  >
-    <Image src='/social/reddit.svg' alt='Reddit' width={32} height={32} />
-  </a>
-</div>
+            <a
+              href={shareLinks.facebook}
+              target="_blank"
+              rel="noopener noreferrer"
+              className='p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-colors'
+              aria-label='Share on Facebook'
+            >
+              <Image src='/social/facebook.svg' alt='Facebook' width={32} height={32} />
+            </a>
+            <a
+              href={shareLinks.twitter}
+              target="_blank"
+              rel="noopener noreferrer"
+              className='p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-colors'
+              aria-label='Share on Twitter'
+            >
+              <Image src='/social/x.svg' alt='Twitter' width={32} height={32} />
+            </a>
+            <a
+              href={shareLinks.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              className='p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-colors'
+              aria-label='Share on LinkedIn'
+            >
+              <Image src='/social/linkedin.svg' alt='LinkedIn' width={32} height={32} />
+            </a>
+            <a
+              href={shareLinks.reddit}
+              target="_blank"
+              rel="noopener noreferrer"
+              className='p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-colors'
+              aria-label='Share on Reddit'
+            >
+              <Image src='/social/reddit.svg' alt='Reddit' width={32} height={32} />
+            </a>
+          </div>
         </div>
         
         <div className='relative w-full h-100 tablet:h-[350px] mobile:h-[250px]'>
@@ -151,7 +150,7 @@ const ArticleDetail = ({
         
         {content && (
           <div 
-            className='prose prose-lg max-w-none text-black'
+            className='prose prose-lg max-w-none text-black dark:text-white prose-headings:text-black dark:prose-headings:text-white prose-p:text-black dark:prose-p:text-white prose-strong:text-black dark:prose-strong:text-white prose-li:text-black dark:prose-li:text-white prose-a:text-black dark:prose-a:text-white'
             dangerouslySetInnerHTML={{ __html: content }}
           />
         )}

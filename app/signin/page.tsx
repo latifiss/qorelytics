@@ -99,26 +99,38 @@ const SignupPage = () => {
   };
 
   return (
-    <div className="flex h-screen w-full">
+    <div className="flex h-screen w-full bg-white dark:bg-[#171b1d]">
       {/* Left */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-white p-12 relative">
+      <div className="flex-1 flex flex-col items-center justify-center p-12 relative">
         <div className="flex items-center mb-12">
-          <Image
-            src="/images/logo/logo-wordmark.svg"
-            alt="Logo"
-            width={160}
-            height={40}
-            className="w-40 h-10"
-            priority
-          />
+          <div className="block dark:hidden">
+            <Image
+              src="/images/logo/logo-wordmark.svg"
+              alt="Logo"
+              width={160}
+              height={40}
+              className="w-40 h-10"
+              priority
+            />
+          </div>
+          <div className="hidden dark:block">
+            <Image
+              src="/images/logo/logo-wordmark-white.svg"
+              alt="Logo"
+              width={160}
+              height={40}
+              className="w-40 h-10"
+              priority
+            />
+          </div>
         </div>
 
         <div className="flex flex-col items-center justify-center gap-6 max-w-sm w-full">
-          <h1 className="text-3xl font-bold text-black">
+          <h1 className="text-3xl font-bold text-neutral-900 dark:text-white">
             Create your account
           </h1>
 
-          <p className="text-gray-600 text-center">
+          <p className="text-neutral-600 dark:text-neutral-400 text-center">
             Sign up to get started with our platform
           </p>
 
@@ -136,11 +148,11 @@ const SignupPage = () => {
             />
           </div>
 
-          <p className="text-sm text-gray-500 mt-4">
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-4">
             Already have an account?{" "}
             <a
               href="/login"
-              className="text-black font-medium hover:underline"
+              className="text-neutral-900 dark:text-white font-medium hover:underline"
             >
               Login instead
             </a>

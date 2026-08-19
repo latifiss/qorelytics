@@ -1,9 +1,10 @@
 'use client';
 
-import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/context/themeContext';
+import Logo from '@/public/icons/logo/logo';
+import LogoWordmark from '@/public/icons/logo/logoWordmark';
 
 const SidebarHeader = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -32,17 +33,9 @@ const SidebarHeader = () => {
     };
   }, []);
 
-  const getLogoIcon = () => {
-    return isDark ? '/images/logo/logo-icon-white.svg' : '/images/logo/logo-icon.svg';
-  };
-
-  const getLogoWordmark = () => {
-    return isDark ? '/images/logo/logo-wordmark-white.svg' : '/images/logo/logo-wordmark.svg';
-  };
-
   return (
     <motion.div
-      className="flex items-center px-4 pt-4 pb-0 bg-background sticky top-0 z-50"
+      className="flex items-center px-4 pt-4 pb-0 bg-white dark:bg-[#171b1d] sticky top-0 z-50 border-b border-neutral-200 dark:border-neutral-800"
       animate={{ 
         height: isScrolled ? '68px' : '78px',
       }}
@@ -59,13 +52,12 @@ const SidebarHeader = () => {
               transition={{ duration: 0.3, ease: 'easeInOut' }}
               className="flex items-center justify-center"
             >
-              <Image
-                src={getLogoIcon()}
-                alt="Logo Icon"
-                width={45}
-                height={45}
-                priority
-              />
+              <div className="block dark:hidden">
+                <Logo size={45} color="#000000" />
+              </div>
+              <div className="hidden dark:block">
+                <Logo size={45} color="#ffffff" />
+              </div>
             </motion.div>
           ) : (
             <motion.div
@@ -75,14 +67,24 @@ const SidebarHeader = () => {
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.3, ease: 'easeInOut' }}
             >
-              <Image
-                src={getLogoWordmark()}
-                alt="Logo"
-                width={160}
-                height={40}
-                className="w-40 h-10"
-                priority
-              />
+              <div className="block dark:hidden">
+                <LogoWordmark
+                  width={160}
+                  height={40}
+                  color="#000000"
+                  accentColor="#7FF86C"
+                  className="w-40 h-10"
+                />
+              </div>
+              <div className="hidden dark:block">
+                <LogoWordmark
+                  width={160}
+                  height={40}
+                  color="#ffffff"
+                  accentColor="#7FF86C"
+                  className="w-40 h-10"
+                />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

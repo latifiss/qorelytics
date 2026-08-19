@@ -139,23 +139,23 @@ export default function AnalystResponse({
       animate={{ opacity: 1 }}
       className={cn('w-full', className)}
     >
-      <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+      <div className="text-sm text-neutral-900 dark:text-white leading-relaxed whitespace-pre-wrap">
         {text && (
           <>
             <span>{text}</span>
             {isTyping && (
-              <span className="inline-block w-[2px] h-4 bg-foreground/60 animate-pulse ml-0.5" />
+              <span className="inline-block w-[2px] h-4 bg-neutral-900/60 dark:bg-white/60 animate-pulse ml-0.5" />
             )}
           </>
         )}
 
         {showReport && sections.length > 0 && (
-          <div className="mt-4 border border-subtle overflow-hidden bg-fill-alpha-subtle shadow-[0_1px_0_#7FF86C,5px_1px_0_#7FF86C,5px_4px_0_#7FF86C]">
-            <div className="flex justify-between items-center px-3 py-1.5 border-b border-subtle">
-              <span className="text-[10px] font-mono text-muted tracking-wider">
+          <div className="mt-4 border border-neutral-200 dark:border-neutral-800 overflow-hidden bg-neutral-50 dark:bg-neutral-900/50 shadow-[0_1px_0_#7FF86C,5px_1px_0_#7FF86C,5px_4px_0_#7FF86C]">
+            <div className="flex justify-between items-center px-3 py-1.5 border-b border-neutral-200 dark:border-neutral-800">
+              <span className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 tracking-wider">
                 analysis_report.md
               </span>
-              <FiChevronDown size={12} color="var(--text-secondary)" />
+              <FiChevronDown size={12} className="text-neutral-500 dark:text-neutral-400" />
             </div>
             <div className="p-3 space-y-3">
               {sections.map((index) => (
@@ -165,10 +165,10 @@ export default function AnalystResponse({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <h4 className="text-[11px] font-semibold mb-1">
+                  <h4 className="text-[11px] font-semibold text-neutral-900 dark:text-white mb-1">
                     {reportSections[index].title}
                   </h4>
-                  <pre className="text-[10px] font-mono whitespace-pre-wrap text-muted leading-relaxed">
+                  <pre className="text-[10px] font-mono whitespace-pre-wrap text-neutral-600 dark:text-neutral-400 leading-relaxed">
                     {reportSections[index].content}
                   </pre>
                 </motion.div>
@@ -184,35 +184,35 @@ export default function AnalystResponse({
             <button
               onClick={copy}
               disabled={!text}
-              className="p-1.5 hover:bg-fill-alpha-subtle transition-colors disabled:opacity-50"
+              className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors disabled:opacity-50"
             >
               {copied ? (
-                <FiCheck size={14} color="var(--status-success)" />
+                <FiCheck size={14} className="text-green-600 dark:text-green-400" />
               ) : (
-                <FiCopy size={14} color="var(--text-secondary)" />
+                <FiCopy size={14} className="text-neutral-600 dark:text-neutral-400" />
               )}
             </button>
 
             {onRegenerate && (
               <button
                 onClick={onRegenerate}
-                className="p-1.5 hover:bg-fill-alpha-subtle transition-colors"
+                className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
               >
-                <FiRefreshCw size={14} color="var(--text-secondary)" />
+                <FiRefreshCw size={14} className="text-neutral-600 dark:text-neutral-400" />
               </button>
             )}
 
             <button
               onClick={download}
               disabled={!text}
-              className="p-1.5 hover:bg-fill-alpha-subtle transition-colors disabled:opacity-50"
+              className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors disabled:opacity-50"
             >
-              <FiDownload size={14} color="var(--text-secondary)" />
+              <FiDownload size={14} className="text-neutral-600 dark:text-neutral-400" />
             </button>
           </div>
 
           {showReport && (
-            <div className="mt-3 pt-2 border-t border-subtle text-[10px] text-muted">
+            <div className="mt-3 pt-2 border-t border-neutral-200 dark:border-neutral-800 text-[10px] text-neutral-500 dark:text-neutral-400">
               ✓ Analysis complete
             </div>
           )}

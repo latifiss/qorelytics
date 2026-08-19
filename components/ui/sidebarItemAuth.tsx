@@ -44,7 +44,7 @@ const SidebarItemAuth: React.FC<SidebarItemAuthProps> = ({
 
   const getTextStyles = () => {
     if (isDesktop) {
-      return 'text-[40px] text-foreground';
+      return 'text-[40px] text-neutral-900 dark:text-white';
     } else {
       return 'text-[64px] text-white';
     }
@@ -53,7 +53,7 @@ const SidebarItemAuth: React.FC<SidebarItemAuthProps> = ({
   const getIconStyles = () => {
     const baseStyles = 'ml-2 flex-shrink-0';
     if (isDesktop) {
-      return `${baseStyles} text-foreground`;
+      return `${baseStyles} text-neutral-900 dark:text-white`;
     } else {
       return `${baseStyles} text-white`;
     }
@@ -61,7 +61,7 @@ const SidebarItemAuth: React.FC<SidebarItemAuthProps> = ({
 
   const getIconColor = () => {
     if (isDesktop) {
-      return 'var(--text-primary)';
+      return undefined;
     } else {
       return '#ffffff';
     }
@@ -114,7 +114,6 @@ const SidebarItemAuth: React.FC<SidebarItemAuthProps> = ({
     </>
   );
 
-  // If logged in, render as button with click handler
   if (isLoggedIn) {
     return (
       <>
@@ -128,7 +127,6 @@ const SidebarItemAuth: React.FC<SidebarItemAuthProps> = ({
           {renderContent()}
         </button>
 
-        {/* Profile Modal */}
         <AnimatePresence>
           {isModalOpen && (
             <>
@@ -148,8 +146,7 @@ const SidebarItemAuth: React.FC<SidebarItemAuthProps> = ({
                 className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="bg-surface-elevated rounded-2xl border border-subtle shadow-tab p-6">
-                  {/* Header */}
+                <div className="bg-white dark:bg-[#22282b] rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-tab p-6">
                   <div className="flex items-center gap-4 mb-6">
                     <div className="shrink-0">
                       <Image
@@ -157,65 +154,59 @@ const SidebarItemAuth: React.FC<SidebarItemAuthProps> = ({
                         alt="Profile"
                         width={64}
                         height={64}
-                        className="rounded-full object-cover border-2 border-subtle"
+                        className="rounded-full object-cover border-2 border-neutral-200 dark:border-neutral-800"
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-semibold text-foreground truncate">
+                      <h3 className="text-lg font-semibold text-neutral-900 dark:text-white truncate">
                         {userData?.name || 'User'}
                       </h3>
-                      <p className="text-sm text-muted truncate">
+                      <p className="text-sm text-neutral-500 dark:text-neutral-400 truncate">
                         {userData?.email || 'user@email.com'}
                       </p>
                     </div>
                   </div>
 
-                  {/* Tier Badge */}
-                  <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-fill-alpha-subtle border border-subtle">
-                    <span className="text-sm font-medium text-foreground">Current Plan</span>
+                  <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800">
+                    <span className="text-sm font-medium text-neutral-900 dark:text-white">Current Plan</span>
                     <span className={cn(
                       'ml-auto px-3 py-1 rounded-full text-xs font-semibold uppercase',
-                      userData?.tier === 'pro' && 'bg-accent-alpha-yellow text-warning',
-                      userData?.tier === 'team' && 'bg-accent-alpha-green text-success',
-                      (!userData?.tier || userData?.tier === 'free') && 'bg-fill-alpha-muted text-muted'
+                      userData?.tier === 'pro' && 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400',
+                      userData?.tier === 'team' && 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400',
+                      (!userData?.tier || userData?.tier === 'free') && 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'
                     )}>
                       {userData?.tier || 'Free'}
                     </span>
                   </div>
 
-                  {/* Divider */}
-                  <div className="border-t border-subtle my-4" />
+                  <div className="border-t border-neutral-200 dark:border-neutral-800 my-4" />
 
-                  {/* Actions */}
                   <div className="space-y-2">
                     <button
                       onClick={() => {
                         setIsModalOpen(false);
-                        // Navigate to profile
                         window.location.href = '/profile';
                       }}
-                      className="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-foreground hover:bg-fill-alpha-subtle transition-colors"
+                      className="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-neutral-900 dark:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
                     >
                       View Profile
                     </button>
                     <button
                       onClick={() => {
                         setIsModalOpen(false);
-                        // Navigate to settings
                         window.location.href = '/settings';
                       }}
-                      className="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-foreground hover:bg-fill-alpha-subtle transition-colors"
+                      className="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-neutral-900 dark:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
                     >
                       Settings
                     </button>
                     <button
                       onClick={() => {
                         setIsModalOpen(false);
-                        // Handle logout
                         localStorage.removeItem('token');
                         window.location.href = '/signin';
                       }}
-                      className="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-error hover:bg-error-subtle transition-colors"
+                      className="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                     >
                       Sign Out
                     </button>
@@ -229,7 +220,6 @@ const SidebarItemAuth: React.FC<SidebarItemAuthProps> = ({
     );
   }
 
-  // If logged out, render as link
   if (isExternal) {
     return (
       <a

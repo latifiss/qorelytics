@@ -19,27 +19,27 @@ const ComparisonTable = ({ features, className = '' }: ComparisonTableProps) => 
   const renderValue = (value: string | boolean) => {
     if (typeof value === 'boolean') {
       return value ? (
-        <Check className="w-5 h-5 text-foreground mx-auto" strokeWidth={2.5} />
+        <Check className="w-5 h-5 text-neutral-900 dark:text-white mx-auto" strokeWidth={2.5} />
       ) : (
-        <X className="w-5 h-5 text-muted mx-auto" strokeWidth={2.5} />
+        <X className="w-5 h-5 text-neutral-400 dark:text-neutral-600 mx-auto" strokeWidth={2.5} />
       )
     }
-    return <span className="text-[18px] font-normal text-muted-foreground">{value}</span>
+    return <span className="text-[18px] font-normal text-neutral-600 dark:text-neutral-400">{value}</span>
   }
 
   return (
     <div className={cn('w-full overflow-x-auto', className)}>
-      <div className="min-w-full rounded-2xl border border-subtle bg-fill-alpha-subtle p-1 shadow-tab">
+      <div className="min-w-full rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 p-1 shadow-tab">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="border-b border-subtle bg-fill-alpha-subtle">
-                <th className="sticky left-0 z-10 text-left py-4 px-6 text-[18px] font-medium text-muted-foreground rounded-tl-2xl bg-fill-alpha-subtle">
+              <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50">
+                <th className="sticky left-0 z-10 text-left py-4 px-6 text-[18px] font-medium text-neutral-500 dark:text-neutral-400 rounded-tl-2xl bg-neutral-50 dark:bg-neutral-900/50">
                   Feature
                 </th>
-                <th className="text-center py-4 px-6 text-[18px] font-medium text-muted-foreground bg-fill-alpha-subtle">Free</th>
-                <th className="text-center py-4 px-6 text-[18px] font-medium text-muted-foreground bg-fill-alpha-subtle">Pro</th>
-                <th className="text-center py-4 px-6 text-[18px] font-medium text-muted-foreground rounded-tr-2xl bg-fill-alpha-subtle">Team</th>
+                <th className="text-center py-4 px-6 text-[18px] font-medium text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-900/50">Free</th>
+                <th className="text-center py-4 px-6 text-[18px] font-medium text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-900/50">Pro</th>
+                <th className="text-center py-4 px-6 text-[18px] font-medium text-neutral-500 dark:text-neutral-400 rounded-tr-2xl bg-neutral-50 dark:bg-neutral-900/50">Team</th>
               </tr>
             </thead>
             <tbody>
@@ -47,10 +47,10 @@ const ComparisonTable = ({ features, className = '' }: ComparisonTableProps) => 
                 <tr 
                   key={index} 
                   className={cn(
-                    'border-b border-subtle transition-colors bg-surface hover:bg-fill-alpha-subtle'
+                    'border-b border-neutral-200 dark:border-neutral-800 transition-colors bg-white dark:bg-[#171b1d] hover:bg-neutral-50 dark:hover:bg-neutral-900/50'
                   )}
                 >
-                  <td className="sticky left-0 z-10 py-3 px-6 text-[18px] font-normal text-foreground bg-surface hover:bg-fill-alpha-subtle">
+                  <td className="sticky left-0 z-10 py-3 px-6 text-[18px] font-normal text-neutral-900 dark:text-white bg-white dark:bg-[#171b1d] hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
                     {feature.name}
                   </td>
                   <td className="py-3 px-6 text-center">{renderValue(feature.free)}</td>

@@ -124,7 +124,7 @@ const PricingPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
           className={cn(
-            'relative rounded-2xl border border-border bg-surface p-8 flex flex-col',
+            'relative rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#22282b] p-8 flex flex-col',
             isPro && 'border-4 border-black/20 dark:border-white/20 shadow-lg pricing-pro-border'
           )}
         >
@@ -173,16 +173,16 @@ const PricingPage = () => {
           `}</style>
 
           <div className="mb-6">
-            <h3 className="text-xl font-bold text-foreground mb-2">{plan.name}</h3>
-            <p className="text-sm text-muted-foreground">{plan.description}</p>
+            <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">{plan.name}</h3>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">{plan.description}</p>
           </div>
 
           <div className="mb-6">
-            <span className="text-6xl font-bold text-foreground">
+            <span className="text-6xl font-bold text-neutral-900 dark:text-white">
               {isFree ? '$0' : `$${price}`}
             </span>
             {!isFree && (
-              <span className="text-sm text-muted-foreground ml-2">{getPriceLabel()}</span>
+              <span className="text-sm text-neutral-500 dark:text-neutral-400 ml-2">{getPriceLabel()}</span>
             )}
             {!isFree && interval === 'yearly' && typeof plan.price === 'object' && (
               <span className="text-sm text-green-600 dark:text-green-400 ml-2 line-through">
@@ -204,9 +204,9 @@ const PricingPage = () => {
           <button
             className={cn(
               'w-full py-3 rounded-full font-medium transition-all duration-200',
-              plan.ctaVariant === 'primary' && 'bg-accent text-white hover:bg-accent/90',
-              plan.ctaVariant === 'secondary' && 'bg-fill-muted text-foreground hover:bg-fill-moderate',
-              plan.ctaVariant === 'outline' && 'border border-border text-foreground hover:bg-fill-alpha-subtle'
+              plan.ctaVariant === 'primary' && 'bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90',
+              plan.ctaVariant === 'secondary' && 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-700',
+              plan.ctaVariant === 'outline' && 'border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white hover:bg-neutral-50 dark:hover:bg-neutral-900/50'
             )}
           >
             {plan.ctaText}
@@ -217,40 +217,42 @@ const PricingPage = () => {
   }
 
   return (
-    <div
-      className="
-        container 
-        mx-auto 
-        px-6 
-        py-12
-        md:px-10
-        lg:px-12
-        xl:px-20
-      "
-    >
-      <div className="text-center mb-12">
-        <h1 className="text-5xl font-bold font-text text-foreground mb-4">Choose Your Plan</h1>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Select the perfect plan for your analytics needs. Upgrade or downgrade at any time.
-        </p>
-      </div>
+    <div className="min-h-screen bg-white dark:bg-[#171b1d]">
+      <div
+        className="
+          container 
+          mx-auto 
+          px-6 
+          py-12
+          md:px-10
+          lg:px-12
+          xl:px-20
+        "
+      >
+        <div className="text-center mb-12">
+          <h1 className="text-5xl font-bold font-text text-neutral-900 dark:text-white mb-4">Choose Your Plan</h1>
+          <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto">
+            Select the perfect plan for your analytics needs. Upgrade or downgrade at any time.
+          </p>
+        </div>
 
-      <div className="max-w-md mx-auto mb-16">
-        <Tabs 
-          items={tabItems} 
-          variant="pill" 
-          defaultActiveId="monthly"
-          onTabChange={(id) => setInterval(id as PricingInterval)}
-        />
-      </div>
+        <div className="max-w-md mx-auto mb-16">
+          <Tabs 
+            items={tabItems} 
+            variant="pill" 
+            defaultActiveId="monthly"
+            onTabChange={(id) => setInterval(id as PricingInterval)}
+          />
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {renderPricingCards()}
-      </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {renderPricingCards()}
+        </div>
 
-      <div className="mt-16">
-        <h2 className="text-3xl font-bold font-text text-foreground text-center mb-8">Compare Plans</h2>
-        <ComparisonTable features={comparisonData.features} />
+        <div className="mt-16">
+          <h2 className="text-3xl font-bold font-text text-neutral-900 dark:text-white text-center mb-8">Compare Plans</h2>
+          <ComparisonTable features={comparisonData.features} />
+        </div>
       </div>
     </div>
   )

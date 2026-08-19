@@ -23,7 +23,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
 
   const getTextStyles = () => {
     if (isDesktop) {
-      return 'text-[40px] text-foreground';
+      return 'text-[40px] text-neutral-900 dark:text-white';
     } else {
       return 'text-[64px] text-white';
     }
@@ -32,18 +32,18 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
   const getIconStyles = () => {
     const baseStyles = 'ml-2';
     if (isDesktop) {
-      return `${baseStyles} text-foreground`;
+      return `${baseStyles} text-neutral-900 dark:text-white`;
     } else {
       return `${baseStyles} text-white`;
     }
-    };
+  };
     
-    const getIconColor = () => {
-      if (isDesktop) {
-        return 'var(--text-primary)';
-      } else {
-        return '#ffffff';
-      }
+  const getIconColor = () => {
+    if (isDesktop) {
+      return undefined;
+    } else {
+      return '#ffffff';
+    }
   };
 
   const getIconSize = () => {
@@ -88,7 +88,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
       className={cn(
         'inline-flex items-center transition-opacity hover:opacity-80 w-full h-24 lg:h-15',
         className
-    )}
+      )}
     >
       {renderContent()}
     </Link>

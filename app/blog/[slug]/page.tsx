@@ -51,17 +51,19 @@ export default async function ArticlePage({
   }
 
   return (
-    <ArticleDetail
-      title={article.title}
-      date={article.publishedAt}
-      imageUrl={article.imageUrl}
-      imageAlt={article.imageAlt ?? "Blog post cover image"}
-      tags={article.tags ?? []}
-      author={article.author ?? "Unknown"}
-      authorImage={
-        article.authorImage ?? "/images/default-avatar.svg"
-      }
-      content={article.body as string}
-    />
+    <div className="bg-white dark:bg-[#171b1d] min-h-screen">
+      <ArticleDetail
+        title={article.title}
+        date={article.publishedAt}
+        imageUrl={article.imageUrl}
+        imageAlt={article.imageAlt ?? "Blog post cover image"}
+        tags={article.tags ?? []}
+        author={article.author ?? "Unknown"}
+        authorImage={
+          article.authorImage ?? "/images/default-avatar.svg"
+        }
+        content={article.body as string}
+      />
+    </div>
   )
 }

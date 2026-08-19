@@ -12,35 +12,39 @@ import PointIcon from '@/public/icons/mono/point'
 import Command from '@/components/ui/command'
 import { useUser } from "@/hooks/use-user";
 
-// Mock user data - replace with actual user data from your auth system
-const user = {
-  name: "John Doe",
-  email: "john@example.com",
-  tier: "pro" as "free" | "pro" | "team",
-  avatar: "/images/default-avatar.svg"
-}
-
 const Sidebar = () => {
-   const pathname = usePathname()
-    const { user, loading } = useUser();
+  const pathname = usePathname()
+  const { user, loading } = useUser();
   
   if (loading) {
     return null;
   }
   
-    const isActive = (path: string) => {
-      return pathname === path
-    }
+  const isActive = (path: string) => {
+    return pathname === path
+  }
   
-    // Auth paths
-    const authPath = user ? "/profile" : "/signin";
+  const authPath = user ? "/profile" : "/signin";
   const isAuthActive =
     pathname === authPath ||
     pathname === "/signin" ||
     pathname === "/profile";
 
+  // Get avatar from user object - check multiple possible property names
+  const getUserAvatar = () => {
+    if (!user) return "/images/default-avatar.svg";
+    
+    // Check various possible avatar field names
+    return user.image 
+      || user.avatar 
+      || user.photoURL 
+      || user.profileImage 
+      || user.picture
+      || "/images/default-avatar.svg";
+  };
+
   return (
-    <div className='sidebar-scroll-container flex flex-col p-0 w-80 h-full pb-3 border-r border-subtle overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted hover:scrollbar-thumb-foreground'>
+    <div className='sidebar-scroll-container flex flex-col p-0 w-80 h-full pb-3 border-r border-neutral-200 dark:border-neutral-800 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-300 dark:scrollbar-thumb-neutral-700 hover:scrollbar-thumb-neutral-500 dark:hover:scrollbar-thumb-neutral-500 bg-white dark:bg-[#171b1d]'>
       <SidebarHeader />
       <div className='flex flex-col gap-2 p-4 pr-1'>
         <div className="relative">
@@ -193,23 +197,23 @@ const Sidebar = () => {
           </AnimatePresence>
           <div className="flex items-center justify-between w-full">
             <SidebarItemAuth 
-  label={user ? user.name : "Sign Up"} 
-  href={user ? "/profile" : "/signin"} 
-  variant="external" 
-  type="desktop"
-  state={user ? "loggedin" : "loggedout"}
-  userData={
-    user
-      ? {
-          name: user.name,
-          email: user.email,
-          tier: "free",
-          avatar: user.image ?? "/images/default-avatar.svg",
-        }
-      : undefined
-  }
-  className={isAuthActive ? 'pl-6' : ''}
-/>
+              label={user ? user.name : "Sign Up"} 
+              href={user ? "/profile" : "/signin"} 
+              variant="external" 
+              type="desktop"
+              state={user ? "loggedin" : "loggedout"}
+              userData={
+                user
+                  ? {
+                      name: user.name,
+                      email: user.email,
+                      tier: "free",
+                      avatar: getUserAvatar(),
+                    }
+                  : undefined
+              }
+              className={isAuthActive ? 'pl-6' : ''}
+            />
           </div>
         </div>
       </div>

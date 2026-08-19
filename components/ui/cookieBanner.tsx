@@ -52,29 +52,25 @@ const CookieBanner: React.FC<CookieBannerProps> = ({
           transition={{ duration: 0.3, ease: 'easeOut' }}
           className={cn(
             'fixed bottom-6 right-6 z-50 max-w-sm w-full',
-            'rounded-2xl border border-subtle',
-            'bg-surface-elevated shadow-tab',
+            'rounded-2xl border border-neutral-200 dark:border-neutral-800',
+            'bg-white dark:bg-[#22282b] shadow-tab',
             'p-6',
             className
           )}
         >
           <div className="flex flex-col items-center text-center">
-            {/* Cookie Icon */}
             <div className="mb-4">
               <CookieIcon size={64} />
             </div>
 
-            {/* Title */}
-            <h3 className="text-lg font-semibold text-foreground mb-2">
+            <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2">
               We use cookies
             </h3>
 
-            {/* Description */}
-            <p className="text-sm text-muted leading-relaxed mb-5">
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed mb-5">
               We use cookies to enhance your experience, analyze site traffic, and personalize content. By clicking "Accept", you consent to our use of cookies.
             </p>
 
-            {/* Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 w-full">
               <button
                 onClick={handleAccept}
@@ -90,18 +86,17 @@ const CookieBanner: React.FC<CookieBannerProps> = ({
                 onClick={handleReject}
                 className={cn(
                   'flex-1 px-4 py-2.5 rounded-lg font-medium transition-all duration-200',
-                  'bg-transparent text-foreground border border-subtle',
-                  'hover:bg-fill-alpha-subtle hover:scale-[1.02] active:scale-[0.98]'
+                  'bg-transparent text-neutral-900 dark:text-white border border-neutral-200 dark:border-neutral-800',
+                  'hover:bg-neutral-50 dark:hover:bg-neutral-800/50 hover:scale-[1.02] active:scale-[0.98]'
                 )}
               >
                 Reject
               </button>
             </div>
 
-            {/* Privacy link */}
-            <p className="text-xs text-muted mt-4">
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-4">
               By accepting, you agree to our{' '}
-              <a href="/privacy" className="underline hover:text-foreground transition-colors">
+              <a href="/privacy" className="underline hover:text-neutral-900 dark:hover:text-white transition-colors">
                 Privacy Policy
               </a>
             </p>

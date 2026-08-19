@@ -114,9 +114,9 @@ const Input: React.FC<InputProps> = ({
 
   const getButtonBg = () => {
     if (isActive) {
-      return 'bg-foreground hover:opacity-90';
+      return 'bg-neutral-900 dark:bg-white hover:opacity-90';
     }
-    return 'bg-fill-muted cursor-not-allowed';
+    return 'bg-neutral-100 dark:bg-neutral-800 cursor-not-allowed';
   };
 
   const inputContent = (
@@ -130,10 +130,10 @@ const Input: React.FC<InputProps> = ({
         onClose={() => setShowBanner(false)}
       />
       <div className={cn(
-  'w-full rounded-2xl border border-subtle shadow-tab relative z-20',
-  'bg-surface-muted-mobile',
-  className
-)}>
+        'w-full rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-tab relative z-20',
+        'bg-white dark:bg-[#22282b]',
+        className
+      )}>
         <div className="p-4">
           <textarea
             ref={textareaRef}
@@ -144,7 +144,7 @@ const Input: React.FC<InputProps> = ({
             rows={1}
             disabled={disabled}
             className={cn(
-              'w-full resize-none bg-transparent text-foreground placeholder:text-muted',
+              'w-full resize-none bg-transparent text-neutral-900 dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400',
               'focus:outline-none font-text text-base leading-relaxed',
               'min-h-6 max-h-50',
               disabled && 'opacity-50 cursor-not-allowed'
@@ -161,7 +161,7 @@ const Input: React.FC<InputProps> = ({
               exit={{ opacity: 0, y: -10 }}
               className="px-4 pb-2"
             >
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-fill-alpha-subtle border border-subtle">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700">
                 <div className="w-5 h-5 shrink">
                   <Image
                     src={selectedFile.icon}
@@ -171,28 +171,28 @@ const Input: React.FC<InputProps> = ({
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <span className="text-sm text-foreground font-medium">
+                <span className="text-sm text-neutral-900 dark:text-white font-medium">
                   {selectedFile.name}
                 </span>
                 <button
                   onClick={handleRemoveFile}
-                  className="p-0.5 hover:bg-fill-alpha-muted rounded-full transition-colors"
+                  className="p-0.5 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-full transition-colors"
                 >
-                  <CloseIcon size={16} color="var(--text-secondary)" />
+                  <CloseIcon size={16} className="text-neutral-600 dark:text-neutral-400" />
                 </button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <div className="flex items-center justify-between px-3 py-2 border-t border-subtle">
+        <div className="flex items-center justify-between px-3 py-2 border-t border-neutral-200 dark:border-neutral-800">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsModalOpen(true)}
-              className="p-2 rounded-full hover:bg-fill-alpha-subtle transition-colors"
+              className="p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
               aria-label="Attach file"
             >
-              <ScanIcon size={24} color="var(--text-secondary)" />
+              <ScanIcon size={24} className="text-neutral-600 dark:text-neutral-400" />
             </button>
 
             <div className="flex items-center gap-1">
@@ -235,23 +235,22 @@ const Input: React.FC<InputProps> = ({
     </div>
   );
 
-  // In the Input component, update the fixed return:
-if (fixed) {
-  return (
-    <>
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background">
-        <div className="max-w-2xl mx-auto px-4 mb-0">
-          {inputContent}
+  if (fixed) {
+    return (
+      <>
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-[#171b1d] border-t border-neutral-200 dark:border-neutral-800">
+          <div className="max-w-2xl mx-auto px-4 mb-0">
+            {inputContent}
+          </div>
         </div>
-      </div>
-      <SelectionModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSelect={handleFileSelect}
-      />
-    </>
-  );
-}
+        <SelectionModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSelect={handleFileSelect}
+        />
+      </>
+    );
+  }
 
   return (
     <>
