@@ -105,7 +105,10 @@ export function ChartEngine({
           schema
         );
 
-      console.log('ChartEngine: Recommendations:', recs);
+      console.log(
+        'ChartEngine: Recommendations:',
+        recs
+      );
 
       setRecommendations(recs);
 
@@ -120,7 +123,10 @@ export function ChartEngine({
             recs[0]
           );
 
-        console.log('ChartEngine: Generated config:', generatedConfig);
+        console.log(
+          'ChartEngine: Generated config:',
+          generatedConfig
+        );
 
         const finalConfig = userConfig
           ? {
@@ -129,7 +135,10 @@ export function ChartEngine({
             }
           : generatedConfig;
 
-        console.log('ChartEngine: Final config:', finalConfig);
+        console.log(
+          'ChartEngine: Final config:',
+          finalConfig
+        );
 
         setConfig(finalConfig);
         setSelectedType(
@@ -140,20 +149,27 @@ export function ChartEngine({
           recs[0]
         );
       } else {
-        console.log('ChartEngine: No recommendations found');
+        console.log(
+          'ChartEngine: No recommendations found'
+        );
       }
     } else if (userConfig) {
       const fullConfig =
         userConfig as ChartConfig;
 
-      console.log('ChartEngine: Using user config:', fullConfig);
+      console.log(
+        'ChartEngine: Using user config:',
+        fullConfig
+      );
 
       setConfig(fullConfig);
       setSelectedType(
         fullConfig.type
       );
     } else {
-      console.log('ChartEngine: Auto-detect disabled or no dimensions/measures found');
+      console.log(
+        'ChartEngine: Auto-detect disabled or no dimensions/measures found'
+      );
     }
 
     setIsLoading(false);
@@ -177,10 +193,17 @@ export function ChartEngine({
       data,
       config
     );
-    
-    console.log('ChartEngine: Transformed data:', result);
-    console.log('ChartEngine: Transformed data length:', result.length);
-    
+
+    console.log(
+      'ChartEngine: Transformed data:',
+      result
+    );
+
+    console.log(
+      'ChartEngine: Transformed data length:',
+      result.length
+    );
+
     return result;
   }, [data, config]);
 
@@ -203,9 +226,12 @@ export function ChartEngine({
         primary,
         ...alternatives,
       ];
-      
-      console.log('ChartEngine: Available chart types:', allTypes);
-      
+
+      console.log(
+        'ChartEngine: Available chart types:',
+        allTypes
+      );
+
       return allTypes;
     }, [recommendations]);
 
@@ -216,7 +242,10 @@ export function ChartEngine({
       return;
     }
 
-    console.log('ChartEngine: Chart type changed to:', type);
+    console.log(
+      'ChartEngine: Chart type changed to:',
+      type
+    );
 
     const rec =
       recommendations.find(
@@ -234,7 +263,11 @@ export function ChartEngine({
       rec || alternativeRec;
 
     if (!selectedRec) {
-      console.log('ChartEngine: No recommendation found for type:', type);
+      console.log(
+        'ChartEngine: No recommendation found for type:',
+        type
+      );
+
       return;
     }
 
@@ -254,26 +287,43 @@ export function ChartEngine({
         : {}),
     };
 
-    console.log('ChartEngine: Updated config:', updatedConfig);
+    console.log(
+      'ChartEngine: Updated config:',
+      updatedConfig
+    );
 
     setConfig(updatedConfig);
     setSelectedType(type);
+
     onConfigChange?.(
       updatedConfig
     );
   };
 
   const renderChart = () => {
-    console.log('ChartEngine: Rendering chart');
-    console.log('ChartEngine: Config:', config);
-    console.log('ChartEngine: Transformed data:', transformedData);
-    
+    console.log(
+      'ChartEngine: Rendering chart'
+    );
+
+    console.log(
+      'ChartEngine: Config:',
+      config
+    );
+
+    console.log(
+      'ChartEngine: Transformed data:',
+      transformedData
+    );
+
     if (
       !config ||
       !transformedData ||
       transformedData.length === 0
     ) {
-      console.log('ChartEngine: No data or config to render');
+      console.log(
+        'ChartEngine: No data or config to render'
+      );
+
       return (
         <div className="flex items-center justify-center h-full text-neutral-500 dark:text-neutral-400">
           <div className="text-center">
@@ -300,12 +350,18 @@ export function ChartEngine({
       height: height - 100,
     };
 
-    console.log('ChartEngine: Rendering chart type:', config.type);
-    console.log('ChartEngine: Base props:', baseProps);
+    console.log(
+      'ChartEngine: Rendering chart type:',
+      config.type
+    );
+
+    console.log(
+      'ChartEngine: Base props:',
+      baseProps
+    );
 
     switch (config.type) {
       case 'bar':
-        console.log('ChartEngine: Using BarRenderer');
         return (
           <BarRenderer
             {...baseProps}
@@ -313,7 +369,6 @@ export function ChartEngine({
         );
 
       case 'horizontalBar':
-        console.log('ChartEngine: Using HorizontalBarRenderer');
         return (
           <HorizontalBarRenderer
             {...baseProps}
@@ -321,7 +376,6 @@ export function ChartEngine({
         );
 
       case 'groupedBar':
-        console.log('ChartEngine: Using GroupedBarRenderer');
         return (
           <GroupedBarRenderer
             {...baseProps}
@@ -330,7 +384,6 @@ export function ChartEngine({
 
       case 'stackedBar':
       case 'hundredStackedBar':
-        console.log('ChartEngine: Using StackedBarRenderer');
         return (
           <StackedBarRenderer
             {...baseProps}
@@ -341,7 +394,6 @@ export function ChartEngine({
       case 'multiLine':
       case 'stepLine':
       case 'cumulativeLine':
-        console.log('ChartEngine: Using LineRenderer');
         return (
           <LineRenderer
             {...baseProps}
@@ -352,7 +404,6 @@ export function ChartEngine({
       case 'multiArea':
       case 'stackedArea':
       case 'hundredStackedArea':
-        console.log('ChartEngine: Using AreaRenderer');
         return (
           <AreaRenderer
             {...baseProps}
@@ -363,7 +414,6 @@ export function ChartEngine({
       case 'donut':
       case 'donutWithKpi':
       case 'nestedDonut':
-        console.log('ChartEngine: Using PieRenderer');
         return (
           <PieRenderer
             {...baseProps}
@@ -372,7 +422,6 @@ export function ChartEngine({
 
       case 'scatter':
       case 'bubble':
-        console.log('ChartEngine: Using ScatterRenderer');
         return (
           <ScatterRenderer
             {...baseProps}
@@ -380,7 +429,6 @@ export function ChartEngine({
         );
 
       case 'histogram':
-        console.log('ChartEngine: Using HistogramRenderer');
         return (
           <HistogramRenderer
             {...baseProps}
@@ -388,7 +436,6 @@ export function ChartEngine({
         );
 
       case 'boxPlot':
-        console.log('ChartEngine: Using BoxPlotRenderer');
         return (
           <BoxPlotRenderer
             {...baseProps}
@@ -396,7 +443,6 @@ export function ChartEngine({
         );
 
       case 'funnel':
-        console.log('ChartEngine: Using FunnelRenderer');
         return (
           <FunnelRenderer
             {...baseProps}
@@ -404,7 +450,6 @@ export function ChartEngine({
         );
 
       case 'waterfall':
-        console.log('ChartEngine: Using WaterfallRenderer');
         return (
           <WaterfallRenderer
             {...baseProps}
@@ -412,7 +457,6 @@ export function ChartEngine({
         );
 
       case 'radar':
-        console.log('ChartEngine: Using RadarRenderer');
         return (
           <RadarRenderer
             {...baseProps}
@@ -420,7 +464,6 @@ export function ChartEngine({
         );
 
       case 'treemap':
-        console.log('ChartEngine: Using TreemapRenderer');
         return (
           <TreemapRenderer
             {...baseProps}
@@ -428,7 +471,6 @@ export function ChartEngine({
         );
 
       case 'gauge':
-        console.log('ChartEngine: Using GaugeRenderer');
         return (
           <GaugeRenderer
             {...baseProps}
@@ -436,7 +478,6 @@ export function ChartEngine({
         );
 
       case 'sankey':
-        console.log('ChartEngine: Using SankeyRenderer');
         return (
           <SankeyRenderer
             {...baseProps}
@@ -444,7 +485,6 @@ export function ChartEngine({
         );
 
       case 'sparkline':
-        console.log('ChartEngine: Using SparklineRenderer');
         return (
           <SparklineRenderer
             {...baseProps}
@@ -452,7 +492,6 @@ export function ChartEngine({
         );
 
       case 'divergingBar':
-        console.log('ChartEngine: Using BarRenderer for divergingBar');
         return (
           <BarRenderer
             {...baseProps}
@@ -461,7 +500,6 @@ export function ChartEngine({
 
       case 'lollipop':
       case 'dotPlot':
-        console.log('ChartEngine: Using BarRenderer for lollipop/dotPlot');
         return (
           <BarRenderer
             {...baseProps}
@@ -469,7 +507,6 @@ export function ChartEngine({
         );
 
       default:
-        console.log('ChartEngine: Using BarRenderer (default)');
         return (
           <BarRenderer
             {...baseProps}
@@ -479,9 +516,8 @@ export function ChartEngine({
   };
 
   if (!config) {
-    console.log('ChartEngine: No config, showing loading state');
     return (
-      <div className="flex items-center justify-center h-[400px] rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#171b1d]">
+      <div className="flex items-center justify-center h-[400px] rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#171b1d] shadow-[0_3px_0_0_#d1d5db] dark:shadow-[0_3px_0_0_#323a3f]">
         <div className="text-center">
           <div className="animate-pulse">
             <div className="h-8 w-32 bg-neutral-200 dark:bg-neutral-700 rounded mb-4 mx-auto" />
@@ -491,8 +527,6 @@ export function ChartEngine({
       </div>
     );
   }
-
-  console.log('ChartEngine: Rendering main component with config');
 
   return (
     <motion.div
@@ -510,6 +544,8 @@ export function ChartEngine({
       className={cn(
         'rounded-lg border border-neutral-200 dark:border-neutral-800',
         'bg-white dark:bg-[#171b1d] overflow-hidden',
+        'shadow-[0_4px_0_0_#d1d5db]',
+        'dark:shadow-[0_4px_0_0_#323a3f]',
         isFullscreen &&
           'fixed inset-4 z-50',
         className
