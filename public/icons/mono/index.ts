@@ -24,3 +24,4 @@ export { default as ArrowTopLeftIcon } from './arrowTopLeft'
 export { default as ArrowTopRightIcon } from './arrowTopRight'
 
 export { default as HamburgerMenuIcon } from './hamburger'
+export { default as SearchIcon } from './search'
