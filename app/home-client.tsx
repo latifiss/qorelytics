@@ -1,9 +1,11 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useMemo } from 'react';
 import Input from '@/components/ui/input';
-import AnalystChat from '@/components/ui/analystChat';
+import AnalystResponse from '@/components/ui/analystResponse';
 import SelectionModal from '@/components/ui/selectionModal';
+import { getSampleById } from '@/data/sample';
+import { ChartConfig, ChartDataPoint } from '@/components/charts/types/chart.types';
 
 interface HomeClientProps {
   userName?: string;
@@ -43,6 +45,77 @@ export default function Home({ userName }: HomeClientProps) {
   const [activeTurnId, setActiveTurnId] = useState<string | null>(null);
 
   const started = turns.length > 0;
+
+  // Generate chart data from sample
+  const chartData = useMemo(() => {
+    const sample = getSampleById('time-series');
+    if (!sample) return [];
+
+    const charts = [];
+    const dimensions = sample.config.dimensions;
+    const measures = sample.config.measures;
+
+    // Chart 0: Main trend (recommended chart)
+    charts.push({
+      config: {
+        id: `chart-0-${Date.now()}`,
+        type: sample.config.recommendedChart as any,
+        dimensions: dimensions,
+        measures: [measures[0]],
+        title: `${measures[0]} Trend`,
+        showLegend: true,
+      } as ChartConfig,
+      data: sample.data as ChartDataPoint[],
+    });
+
+    // Chart 1: Bar chart for second measure
+    if (measures.length > 1) {
+      charts.push({
+        config: {
+          id: `chart-1-${Date.now()}`,
+          type: 'bar' as any,
+          dimensions: dimensions,
+          measures: [measures[1]],
+          title: `${measures[1]} Distribution`,
+          showLegend: true,
+        } as ChartConfig,
+        data: sample.data as ChartDataPoint[],
+      });
+    }
+
+    // Chart 2: Area chart for multi-measure comparison
+    if (measures.length > 2) {
+      charts.push({
+        config: {
+          id: `chart-2-${Date.now()}`,
+          type: 'area' as any,
+          dimensions: dimensions,
+          measures: measures.slice(0, 3),
+          title: 'Multi-Measure Comparison',
+          showLegend: true,
+        } as ChartConfig,
+        data: sample.data as ChartDataPoint[],
+      });
+    }
+
+    // Chart 3: Donut chart for breakdown (if data has <= 10 unique categories)
+    const uniqueCategories = new Set(sample.data.map(d => String(d[dimensions[0]])));
+    if (uniqueCategories.size <= 10 && uniqueCategories.size > 1) {
+      charts.push({
+        config: {
+          id: `chart-3-${Date.now()}`,
+          type: 'donut' as any,
+          dimensions: dimensions,
+          measures: [measures[0]],
+          title: `${measures[0]} Breakdown`,
+          showLegend: true,
+        } as ChartConfig,
+        data: sample.data as ChartDataPoint[],
+      });
+    }
+
+    return charts;
+  }, []);
 
   const scrollToBottom = useCallback(() => {
     if (userScrolledUpRef.current) return;
@@ -140,6 +213,7 @@ export default function Home({ userName }: HomeClientProps) {
 
                 return (
                   <div key={turn.id} className="space-y-6">
+                    {/* User Message */}
                     <div className="w-full flex justify-end">
                       <div
                         className="max-w-[80%] px-4 py-3 border border-neutral-200 dark:border-neutral-800 rounded-none text-sm text-neutral-900 dark:text-white leading-relaxed whitespace-pre-wrap bg-neutral-50 dark:bg-neutral-900/50"
@@ -148,20 +222,17 @@ export default function Home({ userName }: HomeClientProps) {
                       </div>
                     </div>
 
-                    <AnalystChat
-                      content={turn.response}
-                      isStreaming
-                      showReport={true}
-                      scrollRef={scrollRef}
-                      onStreamingUpdate={handleStreamingUpdate}
-                      onStreamingComplete={
-                        isActiveTurn ? handleTurnComplete : undefined
-                      }
-                      onCopy={() => {
-                        console.log('copied');
-                      }}
-                      onRegenerate={() => {}}
-                    />
+                    {/* AI Response with Charts */}
+                    <AnalystResponse
+  content={turn.response}
+  isStreaming={isActiveTurn}
+  showReport={true}
+  chartData={chartData}  // Make sure this is passed
+  onCopy={() => console.log('copied')}
+  onRegenerate={() => {}}
+  onStreamingUpdate={handleStreamingUpdate}
+  onStreamingComplete={isActiveTurn ? handleTurnComplete : undefined}
+/>
                   </div>
                 );
               })}

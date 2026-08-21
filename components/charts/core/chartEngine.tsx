@@ -207,33 +207,32 @@ export function ChartEngine({
     return result;
   }, [data, config]);
 
-  const availableChartTypes =
-    useMemo(() => {
-      if (
-        recommendations.length === 0
-      ) {
-        return [];
-      }
+  // Only show chart types that are actually usable with the current data
+  const availableChartTypes = useMemo(() => {
+    if (recommendations.length === 0) {
+      return [];
+    }
 
-      const primary =
-        recommendations[0].primary;
+    const primary =
+      recommendations[0].primary;
 
-      const alternatives =
-        recommendations[0]
-          .alternatives || [];
+    const alternatives =
+      recommendations[0]
+        .alternatives || [];
 
-      const allTypes = [
-        primary,
-        ...alternatives,
-      ];
+    // Filter out chart types that won't work with the data
+    const allTypes = [
+      primary,
+      ...alternatives,
+    ];
 
-      console.log(
-        'ChartEngine: Available chart types:',
-        allTypes
-      );
+    console.log(
+      'ChartEngine: Available chart types:',
+      allTypes
+    );
 
-      return allTypes;
-    }, [recommendations]);
+    return allTypes;
+  }, [recommendations]);
 
   const handleChartTypeChange = (
     type: string
@@ -347,7 +346,7 @@ export function ChartEngine({
       data: transformedData,
       config,
       colors: CHART_COLORS,
-      height: height - 100,
+      height: height - 60,
     };
 
     console.log(
@@ -551,20 +550,16 @@ export function ChartEngine({
         className
       )}
     >
-      <ChartToolbar
-        chartType={config.type}
-        onChartTypeChange={
-          handleChartTypeChange
-        }
-        onFullscreen={() =>
-          setIsFullscreen(
-            !isFullscreen
-          )
-        }
-        onExport={() =>
-          console.log('Export')
-        }
-      />
+      {/* Chart Type Switcher - Only shows usable chart types */}
+      {availableChartTypes.length > 0 && (
+        <div className="p-4 pb-0">
+          <ChartTypeSwitcher
+            types={availableChartTypes}
+            selected={selectedType || config.type}
+            onChange={handleChartTypeChange}
+          />
+        </div>
+      )}
 
       <div className="p-4">
         {config.title && (
@@ -579,31 +574,11 @@ export function ChartEngine({
           </p>
         )}
 
-        {availableChartTypes.length >
-          0 && (
-          <ChartTypeSwitcher
-            types={
-              availableChartTypes
-            }
-            selected={
-              selectedType ||
-              config.type
-            }
-            onChange={
-              handleChartTypeChange
-            }
-            className="mb-3"
-          />
-        )}
-
-        <ChartContainer
-          height={height - 100}
-        >
+        <ChartContainer height={height - 60}>
           {renderChart()}
         </ChartContainer>
 
-        {config.showLegend !==
-          false && (
+        {config.showLegend !== false && (
           <ChartLegend
             items={[]}
             onToggle={() => {}}
