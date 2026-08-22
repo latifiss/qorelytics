@@ -1,12 +1,23 @@
 'use client';
 
-import { useCallback, useRef, useState, useMemo } from 'react';
+import {
+  useCallback,
+  useRef,
+  useState,
+  useMemo,
+} from 'react';
+
 import Input from '@/components/ui/input';
 import AnalystResponse from '@/components/ui/analystResponse';
 import AnalysisProgress from '@/components/ui/analysisProgress';
 import SelectionModal from '@/components/ui/selectionModal';
+
 import { getSampleById } from '@/data/sample';
-import { ChartConfig, ChartDataPoint } from '@/components/charts/types/chart.types';
+
+import {
+  ChartConfig,
+  ChartDataPoint,
+} from '@/components/charts/types/chart.types';
 
 interface HomeClientProps {
   userName?: string;
@@ -36,126 +47,461 @@ Based on the analysis so far, retention dips correlate with onboarding friction 
 Happy to dig deeper into any segment or metric.
 `;
 
-export default function Home({ userName }: HomeClientProps) {
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const bottomRef = useRef<HTMLDivElement | null>(null);
-  const userScrolledUpRef = useRef(false);
+export default function Home({
+  userName,
+}: HomeClientProps) {
+  const scrollRef =
+    useRef<HTMLDivElement | null>(null);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [turns, setTurns] = useState<ChatTurn[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [activeTurnId, setActiveTurnId] = useState<string | null>(null);
+  const bottomRef =
+    useRef<HTMLDivElement | null>(null);
 
-  const started = turns.length > 0;
+  const userScrolledUpRef =
+    useRef(false);
+
+  /*
+   * Keeps analysis timers under control.
+   *
+   * This is important because regeneration should
+   * cancel the previous analysis timer before
+   * starting a new one.
+   */
+  const analysisTimersRef =
+    useRef<
+      Record<
+        string,
+        ReturnType<typeof setTimeout>
+      >
+    >({});
+
+  const [
+    isModalOpen,
+    setIsModalOpen,
+  ] = useState(false);
+
+  const [
+    turns,
+    setTurns,
+  ] = useState<ChatTurn[]>([]);
+
+  const [
+    isGenerating,
+    setIsGenerating,
+  ] = useState(false);
+
+  const [
+    activeTurnId,
+    setActiveTurnId,
+  ] = useState<string | null>(null);
+
+  const started =
+    turns.length > 0;
+
+  /*
+   * ------------------------------------------------------------------------
+   * CHART DATA
+   * ------------------------------------------------------------------------
+   */
 
   const chartData = useMemo(() => {
-    const sample = getSampleById('time-series');
-    if (!sample) return [];
+    const sample =
+      getSampleById('time-series');
+
+    if (!sample) {
+      return [];
+    }
 
     const charts = [];
-    const dimensions = sample.config.dimensions;
-    const measures = sample.config.measures;
 
+    const dimensions =
+      sample.config.dimensions;
+
+    const measures =
+      sample.config.measures;
+
+    /*
+     * Chart 0
+     */
     charts.push({
       config: {
         id: `chart-0-${Date.now()}`,
-        type: sample.config.recommendedChart as any,
-        dimensions: dimensions,
+        type:
+          sample.config
+            .recommendedChart as any,
+        dimensions,
         measures: [measures[0]],
         title: `${measures[0]} Trend`,
         showLegend: true,
       } as ChartConfig,
-      data: sample.data as ChartDataPoint[],
+
+      data:
+        sample.data as ChartDataPoint[],
     });
 
+    /*
+     * Chart 1
+     */
     if (measures.length > 1) {
       charts.push({
         config: {
           id: `chart-1-${Date.now()}`,
           type: 'bar' as any,
-          dimensions: dimensions,
+          dimensions,
           measures: [measures[1]],
           title: `${measures[1]} Distribution`,
           showLegend: true,
         } as ChartConfig,
-        data: sample.data as ChartDataPoint[],
+
+        data:
+          sample.data as ChartDataPoint[],
       });
     }
 
+    /*
+     * Chart 2
+     */
     if (measures.length > 2) {
       charts.push({
         config: {
           id: `chart-2-${Date.now()}`,
           type: 'area' as any,
-          dimensions: dimensions,
-          measures: measures.slice(0, 3),
-          title: 'Multi-Measure Comparison',
+          dimensions,
+          measures:
+            measures.slice(0, 3),
+          title:
+            'Multi-Measure Comparison',
           showLegend: true,
         } as ChartConfig,
-        data: sample.data as ChartDataPoint[],
+
+        data:
+          sample.data as ChartDataPoint[],
       });
     }
 
-    const uniqueCategories = new Set(sample.data.map(d => String(d[dimensions[0]])));
-    if (uniqueCategories.size <= 10 && uniqueCategories.size > 1) {
+    /*
+     * Chart 3
+     */
+    const uniqueCategories =
+      new Set(
+        sample.data.map((d) =>
+          String(
+            d[dimensions[0]]
+          )
+        )
+      );
+
+    if (
+      uniqueCategories.size <= 10 &&
+      uniqueCategories.size > 1
+    ) {
       charts.push({
         config: {
           id: `chart-3-${Date.now()}`,
           type: 'donut' as any,
-          dimensions: dimensions,
+          dimensions,
           measures: [measures[0]],
-          title: `${measures[0]} Breakdown`,
+          title:
+            `${measures[0]} Breakdown`,
           showLegend: true,
         } as ChartConfig,
-        data: sample.data as ChartDataPoint[],
+
+        data:
+          sample.data as ChartDataPoint[],
       });
     }
 
     return charts;
   }, []);
 
-  const scrollToBottom = useCallback(() => {
-    if (userScrolledUpRef.current) return;
+  /*
+   * ------------------------------------------------------------------------
+   * SCROLL
+   * ------------------------------------------------------------------------
+   */
 
-    requestAnimationFrame(() => {
+  const scrollToBottom =
+    useCallback(() => {
+      if (
+        userScrolledUpRef.current
+      ) {
+        return;
+      }
+
       requestAnimationFrame(() => {
-        const el = scrollRef.current;
-        if (el) {
-          el.scrollTop = el.scrollHeight - el.clientHeight;
-        }
-        bottomRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+        requestAnimationFrame(() => {
+          const el =
+            scrollRef.current;
+
+          if (el) {
+            el.scrollTop =
+              el.scrollHeight -
+              el.clientHeight;
+          }
+
+          bottomRef.current?.scrollIntoView(
+            {
+              behavior: 'auto',
+              block: 'end',
+            }
+          );
+        });
       });
-    });
-  }, []);
+    }, []);
 
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
+  const handleScroll =
+    useCallback(() => {
+      const el =
+        scrollRef.current;
 
-    const distanceFromBottom =
-      el.scrollHeight - el.scrollTop - el.clientHeight;
-    userScrolledUpRef.current = distanceFromBottom > 120;
-  }, []);
+      if (!el) {
+        return;
+      }
 
-  const handleStreamingUpdate = useCallback(() => {
-    scrollToBottom();
-  }, [scrollToBottom]);
+      const distanceFromBottom =
+        el.scrollHeight -
+        el.scrollTop -
+        el.clientHeight;
 
-  const handleTurnComplete = useCallback(() => {
-    setActiveTurnId(null);
-    setIsGenerating(false);
-    scrollToBottom();
-  }, [scrollToBottom]);
+      userScrolledUpRef.current =
+        distanceFromBottom > 120;
+    }, []);
 
-  const handleSubmit = (text: string, _mode: string, file?: File) => {
-    if ((!text && !file) || isGenerating) return;
+  const handleStreamingUpdate =
+    useCallback(() => {
+      scrollToBottom();
+    }, [scrollToBottom]);
 
-    const message = text || `Analyze ${file?.name}`;
-    const isFollowUp = turns.length > 0;
-    const newTurnId = crypto.randomUUID();
+  /*
+   * ------------------------------------------------------------------------
+   * CLEAR ANALYSIS TIMER
+   * ------------------------------------------------------------------------
+   */
 
-    setActiveTurnId(newTurnId);
+  const clearAnalysisTimer =
+    useCallback(
+      (turnId: string) => {
+        const timer =
+          analysisTimersRef.current[
+            turnId
+          ];
 
+        if (timer) {
+          clearTimeout(timer);
+
+          delete analysisTimersRef.current[
+            turnId
+          ];
+        }
+      },
+      []
+    );
+
+  /*
+   * ------------------------------------------------------------------------
+   * FINISH ANALYSIS
+   * ------------------------------------------------------------------------
+   *
+   * This is the bridge between:
+   *
+   * AnalysisProgress
+   *        ↓
+   * AnalystResponse
+   *
+   * Once the analysis phase is complete,
+   * we put the response into the turn.
+   *
+   * AnalystResponse then performs its own
+   * character-by-character streaming.
+   */
+
+  const finishAnalysis =
+    useCallback(
+      (
+        turnId: string,
+        response: string
+      ) => {
+        clearAnalysisTimer(
+          turnId
+        );
+
+        setTurns((prev) =>
+          prev.map((turn) =>
+            turn.id === turnId
+              ? {
+                  ...turn,
+                  response,
+                  isAnalyzing: false,
+                }
+              : turn
+          )
+        );
+
+        setActiveTurnId(
+          turnId
+        );
+
+        setIsGenerating(
+          true
+        );
+
+        scrollToBottom();
+      },
+      [
+        clearAnalysisTimer,
+        scrollToBottom,
+      ]
+    );
+
+  /*
+   * ------------------------------------------------------------------------
+   * START ANALYSIS
+   * ------------------------------------------------------------------------
+   *
+   * Both initial generation AND regeneration
+   * use this exact same function.
+   *
+   * This is the important part.
+   */
+
+  const startAnalysis =
+    useCallback(
+      (
+        turnId: string,
+        response: string
+      ) => {
+        /*
+         * Cancel any existing timer for
+         * this turn first.
+         */
+        clearAnalysisTimer(
+          turnId
+        );
+
+        /*
+         * Put the turn back into analysis mode.
+         *
+         * This causes HomeClient to render:
+         *
+         * <AnalysisProgress />
+         */
+        setTurns((prev) =>
+          prev.map((turn) =>
+            turn.id === turnId
+              ? {
+                  ...turn,
+                  response: '',
+                  isAnalyzing: true,
+                }
+              : turn
+          )
+        );
+
+        setActiveTurnId(
+          turnId
+        );
+
+        setIsGenerating(
+          true
+        );
+
+        userScrolledUpRef.current =
+          false;
+
+        scrollToBottom();
+
+        /*
+         * Same analysis duration as
+         * the original request.
+         */
+        const analysisDuration =
+          7000;
+
+        /*
+         * Wait for the analysis animation
+         * to finish before revealing the
+         * AnalystResponse component.
+         */
+        const timer =
+          setTimeout(() => {
+            finishAnalysis(
+              turnId,
+              response
+            );
+          }, analysisDuration);
+
+        analysisTimersRef.current[
+          turnId
+        ] = timer;
+      },
+      [
+        clearAnalysisTimer,
+        finishAnalysis,
+        scrollToBottom,
+      ]
+    );
+
+  /*
+   * ------------------------------------------------------------------------
+   * RESPONSE STREAM COMPLETE
+   * ------------------------------------------------------------------------
+   *
+   * This fires after AnalystResponse has
+   * finished typing the response.
+   */
+
+  const handleTurnComplete =
+    useCallback(
+      (turnId: string) => {
+        setActiveTurnId(
+          null
+        );
+
+        setIsGenerating(
+          false
+        );
+
+        scrollToBottom();
+      },
+      [scrollToBottom]
+    );
+
+  /*
+   * ------------------------------------------------------------------------
+   * SUBMIT
+   * ------------------------------------------------------------------------
+   */
+
+  const handleSubmit = (
+    text: string,
+    _mode: string,
+    file?: File
+  ) => {
+    if (
+      (!text && !file) ||
+      isGenerating
+    ) {
+      return;
+    }
+
+    const message =
+      text ||
+      `Analyze ${file?.name}`;
+
+    const isFollowUp =
+      turns.length > 0;
+
+    const newTurnId =
+      crypto.randomUUID();
+
+    const response =
+      isFollowUp
+        ? getFollowUpResponse()
+        : sampleResponse;
+
+    /*
+     * Create the turn immediately
+     * in analyzing state.
+     */
     setTurns((prev) => [
       ...prev,
       {
@@ -167,131 +513,412 @@ export default function Home({ userName }: HomeClientProps) {
       },
     ]);
 
-    setIsGenerating(true);
-    userScrolledUpRef.current = false;
+    setActiveTurnId(
+      newTurnId
+    );
+
+    setIsGenerating(
+      true
+    );
+
+    userScrolledUpRef.current =
+      false;
+
     scrollToBottom();
 
-    // Start analysis
-    const startTime = Date.now();
-    const analysisDuration = 7000; // 7 seconds for all steps to complete
-
-    // Pre-fetch the response (or simulate API call)
-    const response = isFollowUp ? getFollowUpResponse() : sampleResponse;
-    
-    // Calculate remaining time to ensure animation completes
-    const timeElapsed = Date.now() - startTime;
-    const remainingTime = Math.max(0, analysisDuration - timeElapsed);
-
-    // Wait for animation to complete before showing response
-    setTimeout(() => {
-      setTurns((prev) =>
-        prev.map((turn) =>
-          turn.id === newTurnId
-            ? {
-                ...turn,
-                response: response,
-                isAnalyzing: false,
-              }
-            : turn
-        )
-      );
-    }, remainingTime);
+    /*
+     * Start the exact same analysis
+     * process used by regeneration.
+     */
+    startAnalysis(
+      newTurnId,
+      response
+    );
   };
 
+  /*
+   * ------------------------------------------------------------------------
+   * REGENERATE
+   * ------------------------------------------------------------------------
+   *
+   * This is the missing piece from your
+   * current HomeClient.
+   *
+   * AnalystResponse calls this when the
+   * regenerate button is clicked.
+   */
+
+  const handleRegenerate =
+    useCallback(
+      (turnId: string) => {
+        if (isGenerating) {
+          return;
+        }
+
+        const turn =
+          turns.find(
+            (item) =>
+              item.id === turnId
+          );
+
+        if (!turn) {
+          return;
+        }
+
+        /*
+         * Generate the replacement response.
+         *
+         * For now this uses the same simulated
+         * response. When your real API is connected,
+         * this is where the new API request should
+         * happen.
+         */
+        const response =
+          turn.isFollowUp
+            ? getFollowUpResponse()
+            : sampleResponse;
+
+        /*
+         * IMPORTANT:
+         *
+         * Put the turn back into AnalysisProgress.
+         */
+        startAnalysis(
+          turnId,
+          response
+        );
+      },
+      [
+        isGenerating,
+        turns,
+        startAnalysis,
+      ]
+    );
+
+  /*
+   * ------------------------------------------------------------------------
+   * CLEANUP
+   * ------------------------------------------------------------------------
+   */
+
+  /*
+   * Note:
+   * If you later want this component to have
+   * explicit unmount cleanup, this can be moved
+   * into a useEffect. The timers are also cleared
+   * whenever the same turn starts a new analysis.
+   */
+
   return (
-    <div className="fixed top-19.5 lg:top-0 right-0 bottom-0 left-0 lg:left-80 flex flex-col overflow-hidden bg-white dark:bg-[#171b1d]">
+    <div
+      className="
+        fixed
+        top-19.5
+        lg:top-0
+        right-0
+        bottom-0
+        left-0
+        lg:left-80
+        flex
+        flex-col
+        overflow-hidden
+        bg-white
+        dark:bg-[#171b1d]
+      "
+    >
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 min-h-0 overflow-y-auto pt-8 px-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-300 dark:scrollbar-thumb-neutral-700 hover:scrollbar-thumb-neutral-500 dark:hover:scrollbar-thumb-neutral-500"
+        className="
+          flex-1
+          min-h-0
+          overflow-y-auto
+          pt-8
+          px-4
+          scrollbar-thin
+          scrollbar-track-transparent
+          scrollbar-thumb-neutral-300
+          dark:scrollbar-thumb-neutral-700
+          hover:scrollbar-thumb-neutral-500
+          dark:hover:scrollbar-thumb-neutral-500
+        "
       >
-        <div className="max-w-2xl mx-auto w-full">
+        <div
+          className="
+            max-w-2xl
+            mx-auto
+            w-full
+          "
+        >
           {!started && (
-            <div className="mb-12 mt-20 text-center">
-              <h1 className="text-3xl md:text-4xl font-display font-bold text-neutral-900 dark:text-white">
+            <div
+              className="
+                mb-12
+                mt-20
+                text-center
+              "
+            >
+              <h1
+                className="
+                  text-3xl
+                  md:text-4xl
+                  font-display
+                  font-bold
+                  text-neutral-900
+                  dark:text-white
+                "
+              >
                 {userName ? (
                   <>
                     <span className="rainbow-text">
-                      Hey {userName.split(' ')[0]}
+                      Hey{' '}
+                      {
+                        userName.split(
+                          ' '
+                        )[0]
+                      }
                     </span>
+
                     <br />
+
                     <span className="text-2xl">
-                      What are you analyzing today?
+                      What are you
+                      analyzing today?
                     </span>
                   </>
                 ) : (
-                  <>What are you analyzing today?</>
+                  <>
+                    What are you
+                    analyzing today?
+                  </>
                 )}
               </h1>
-              <p className="mt-2 text-neutral-500 dark:text-neutral-400 text-sm">
-                Upload your data and let Qorelytics uncover insights.
+
+              <p
+                className="
+                  mt-2
+                  text-neutral-500
+                  dark:text-neutral-400
+                  text-sm
+                "
+              >
+                Upload your data
+                and let Qorelytics
+                uncover insights.
               </p>
             </div>
           )}
 
           {started && (
-            <div className="space-y-8">
-              {turns.map((turn) => {
-                const isActiveTurn =
-                  isGenerating && turn.id === activeTurnId;
+            <div
+              className="
+                space-y-8
+              "
+            >
+              {turns.map(
+                (turn) => {
+                  const isActiveTurn =
+                    isGenerating &&
+                    turn.id ===
+                      activeTurnId;
 
-                return (
-                  <div key={turn.id} className="space-y-6">
-                    <div className="w-full flex justify-end">
+                  return (
+                    <div
+                      key={turn.id}
+                      className="
+                        space-y-6
+                      "
+                    >
+                      {/*
+                       * USER MESSAGE
+                       */}
                       <div
-                        className="max-w-[80%] px-4 py-3 border border-neutral-200 dark:border-neutral-800 rounded-none text-sm text-neutral-900 dark:text-white leading-relaxed whitespace-pre-wrap bg-neutral-50 dark:bg-neutral-900/50"
+                        className="
+                          w-full
+                          flex
+                          justify-end
+                        "
                       >
-                        {turn.userMessage}
+                        <div
+                          className="
+                            max-w-[80%]
+                            px-4
+                            py-3
+                            border
+                            border-neutral-200
+                            dark:border-neutral-800
+                            rounded-none
+                            text-sm
+                            text-neutral-900
+                            dark:text-white
+                            leading-relaxed
+                            whitespace-pre-wrap
+                            bg-neutral-50
+                            dark:bg-neutral-900/50
+                          "
+                        >
+                          {
+                            turn.userMessage
+                          }
+                        </div>
                       </div>
-                    </div>
 
-                    {turn.isAnalyzing ? (
-                      <div className="w-full max-w-[80%]">
-                        <AnalysisProgress
-                          onComplete={() => {
-                            // This will be called when animation reaches 100%
-                            console.log('Analysis animation complete');
-                          }}
-                          onStreamingUpdate={handleStreamingUpdate}
+                      {/*
+                       * ANALYSIS PROGRESS
+                       *
+                       * This now appears for BOTH:
+                       *
+                       * 1. Initial generation
+                       * 2. Regeneration
+                       */}
+                      {turn.isAnalyzing ? (
+                        <div
+                          className="
+                            w-full
+                            max-w-[80%]
+                          "
+                        >
+                          <AnalysisProgress
+                            onComplete={() => {
+                              /*
+                               * The parent timer controls
+                               * when the response becomes
+                               * visible.
+                               *
+                               * We intentionally don't
+                               * change the turn here because
+                               * this keeps the analysis
+                               * lifecycle controlled by
+                               * startAnalysis().
+                               */
+                              console.log(
+                                'Analysis animation complete'
+                              );
+
+                              scrollToBottom();
+                            }}
+                            onStreamingUpdate={
+                              handleStreamingUpdate
+                            }
+                          />
+                        </div>
+                      ) : (
+                        /*
+                         * ANALYST RESPONSE
+                         *
+                         * Once AnalysisProgress has
+                         * completed, AnalystResponse
+                         * starts its normal character
+                         * streaming animation.
+                         */
+                        <AnalystResponse
+                          content={
+                            turn.response
+                          }
+                          isStreaming={
+                            isActiveTurn
+                          }
+                          showReport={
+                            true
+                          }
+                          chartData={
+                            chartData
+                          }
+                          onCopy={() =>
+                            console.log(
+                              'copied'
+                            )
+                          }
+                          onRegenerate={() =>
+                            handleRegenerate(
+                              turn.id
+                            )
+                          }
+                          onStreamingUpdate={
+                            handleStreamingUpdate
+                          }
+                          onStreamingComplete={
+                            isActiveTurn
+                              ? () =>
+                                  handleTurnComplete(
+                                    turn.id
+                                  )
+                              : undefined
+                          }
                         />
-                      </div>
-                    ) : (
-                      <AnalystResponse
-                        content={turn.response}
-                        isStreaming={isActiveTurn}
-                        showReport={true}
-                        chartData={chartData}
-                        onCopy={() => console.log('copied')}
-                        onRegenerate={() => {}}
-                        onStreamingUpdate={handleStreamingUpdate}
-                        onStreamingComplete={
-                          isActiveTurn ? handleTurnComplete : undefined
-                        }
-                      />
-                    )}
-                  </div>
-                );
-              })}
+                      )}
+                    </div>
+                  );
+                }
+              )}
 
-              <div ref={bottomRef} className="h-60 shrink-0" aria-hidden />
+              <div
+                ref={bottomRef}
+                className="
+                  h-60
+                  shrink-0
+                "
+                aria-hidden
+              />
             </div>
           )}
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 lg:left-80 bg-linear-to-t from-white dark:from-[#171b1d] via-white/95 dark:via-[#171b1d]/95 to-transparent pt-8 pb-4 px-4 z-40">
-        <div className="max-w-2xl mx-auto">
+      {/*
+       * INPUT
+       */}
+      <div
+        className="
+          fixed
+          bottom-0
+          left-0
+          right-0
+          lg:left-80
+          bg-linear-to-t
+          from-white
+          dark:from-[#171b1d]
+          via-white/95
+          dark:via-[#171b1d]/95
+          to-transparent
+          pt-8
+          pb-4
+          px-4
+          z-40
+        "
+      >
+        <div
+          className="
+            max-w-2xl
+            mx-auto
+          "
+        >
           <Input
-            onSubmit={handleSubmit}
-            disabled={isGenerating}
-            placeholder={started ? 'Ask a follow-up...' : 'Ask anything...'}
+            onSubmit={
+              handleSubmit
+            }
+            disabled={
+              isGenerating
+            }
+            placeholder={
+              started
+                ? 'Ask a follow-up...'
+                : 'Ask anything...'
+            }
           />
         </div>
       </div>
 
+      {/*
+       * SELECTION MODAL
+       */}
       <SelectionModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={
+          isModalOpen
+        }
+        onClose={() =>
+          setIsModalOpen(false)
+        }
         onSelect={() => {}}
       />
     </div>
