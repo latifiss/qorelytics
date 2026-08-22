@@ -63,12 +63,12 @@ export default function AnalysisProgress({
       animate={{ opacity: 1 }}
       className={cn('space-y-2', className)}
     >
-      <div className="flex justify-between text-xs text-muted">
+      <div className="flex justify-between text-xs text-neutral-500 dark:text-neutral-400">
         <span>Analyzing data...</span>
         <span>{progress}%</span>
       </div>
 
-      <div className="h-1 rounded-full bg-fill-alpha-subtle overflow-hidden">
+      <div className="h-1 rounded-full bg-neutral-200 dark:bg-neutral-700 overflow-hidden">
         <motion.div
           animate={{ width: `${progress}%` }}
           transition={{ ease: 'easeOut' }}
@@ -77,7 +77,7 @@ export default function AnalysisProgress({
         />
       </div>
 
-      <div className="mt-3 space-y-1 text-xs font-mono text-muted">
+      <div className="mt-3 space-y-1 text-xs font-mono text-neutral-500 dark:text-neutral-400">
         {activity.map((item, index) => (
           <motion.div
             key={`${item}-${index}`}
