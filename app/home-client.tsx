@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState, useMemo } from 'react';
 import Input from '@/components/ui/input';
 import AnalystResponse from '@/components/ui/analystResponse';
+import AnalysisProgress from '@/components/ui/analysisProgress';
 import SelectionModal from '@/components/ui/selectionModal';
 import { getSampleById } from '@/data/sample';
 import { ChartConfig, ChartDataPoint } from '@/components/charts/types/chart.types';
@@ -16,6 +17,7 @@ interface ChatTurn {
   userMessage: string;
   response: string;
   isFollowUp: boolean;
+  isAnalyzing: boolean;
 }
 
 const sampleResponse = `
@@ -46,7 +48,6 @@ export default function Home({ userName }: HomeClientProps) {
 
   const started = turns.length > 0;
 
-  // Generate chart data from sample
   const chartData = useMemo(() => {
     const sample = getSampleById('time-series');
     if (!sample) return [];
@@ -55,7 +56,6 @@ export default function Home({ userName }: HomeClientProps) {
     const dimensions = sample.config.dimensions;
     const measures = sample.config.measures;
 
-    // Chart 0: Main trend (recommended chart)
     charts.push({
       config: {
         id: `chart-0-${Date.now()}`,
@@ -68,7 +68,6 @@ export default function Home({ userName }: HomeClientProps) {
       data: sample.data as ChartDataPoint[],
     });
 
-    // Chart 1: Bar chart for second measure
     if (measures.length > 1) {
       charts.push({
         config: {
@@ -83,7 +82,6 @@ export default function Home({ userName }: HomeClientProps) {
       });
     }
 
-    // Chart 2: Area chart for multi-measure comparison
     if (measures.length > 2) {
       charts.push({
         config: {
@@ -98,7 +96,6 @@ export default function Home({ userName }: HomeClientProps) {
       });
     }
 
-    // Chart 3: Donut chart for breakdown (if data has <= 10 unique categories)
     const uniqueCategories = new Set(sample.data.map(d => String(d[dimensions[0]])));
     if (uniqueCategories.size <= 10 && uniqueCategories.size > 1) {
       charts.push({
@@ -164,14 +161,41 @@ export default function Home({ userName }: HomeClientProps) {
       {
         id: newTurnId,
         userMessage: message,
-        response: isFollowUp ? getFollowUpResponse() : sampleResponse,
+        response: '',
         isFollowUp,
+        isAnalyzing: true,
       },
     ]);
 
     setIsGenerating(true);
     userScrolledUpRef.current = false;
     scrollToBottom();
+
+    // Start analysis
+    const startTime = Date.now();
+    const analysisDuration = 7000; // 7 seconds for all steps to complete
+
+    // Pre-fetch the response (or simulate API call)
+    const response = isFollowUp ? getFollowUpResponse() : sampleResponse;
+    
+    // Calculate remaining time to ensure animation completes
+    const timeElapsed = Date.now() - startTime;
+    const remainingTime = Math.max(0, analysisDuration - timeElapsed);
+
+    // Wait for animation to complete before showing response
+    setTimeout(() => {
+      setTurns((prev) =>
+        prev.map((turn) =>
+          turn.id === newTurnId
+            ? {
+                ...turn,
+                response: response,
+                isAnalyzing: false,
+              }
+            : turn
+        )
+      );
+    }, remainingTime);
   };
 
   return (
@@ -213,7 +237,6 @@ export default function Home({ userName }: HomeClientProps) {
 
                 return (
                   <div key={turn.id} className="space-y-6">
-                    {/* User Message */}
                     <div className="w-full flex justify-end">
                       <div
                         className="max-w-[80%] px-4 py-3 border border-neutral-200 dark:border-neutral-800 rounded-none text-sm text-neutral-900 dark:text-white leading-relaxed whitespace-pre-wrap bg-neutral-50 dark:bg-neutral-900/50"
@@ -222,17 +245,30 @@ export default function Home({ userName }: HomeClientProps) {
                       </div>
                     </div>
 
-                    {/* AI Response with Charts */}
-                    <AnalystResponse
-  content={turn.response}
-  isStreaming={isActiveTurn}
-  showReport={true}
-  chartData={chartData}  // Make sure this is passed
-  onCopy={() => console.log('copied')}
-  onRegenerate={() => {}}
-  onStreamingUpdate={handleStreamingUpdate}
-  onStreamingComplete={isActiveTurn ? handleTurnComplete : undefined}
-/>
+                    {turn.isAnalyzing ? (
+                      <div className="w-full max-w-[80%]">
+                        <AnalysisProgress
+                          onComplete={() => {
+                            // This will be called when animation reaches 100%
+                            console.log('Analysis animation complete');
+                          }}
+                          onStreamingUpdate={handleStreamingUpdate}
+                        />
+                      </div>
+                    ) : (
+                      <AnalystResponse
+                        content={turn.response}
+                        isStreaming={isActiveTurn}
+                        showReport={true}
+                        chartData={chartData}
+                        onCopy={() => console.log('copied')}
+                        onRegenerate={() => {}}
+                        onStreamingUpdate={handleStreamingUpdate}
+                        onStreamingComplete={
+                          isActiveTurn ? handleTurnComplete : undefined
+                        }
+                      />
+                    )}
                   </div>
                 );
               })}
