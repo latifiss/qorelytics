@@ -9,6 +9,7 @@ interface SidebarItemProps {
   variant?: 'external' | 'internal';
   type?: 'desktop' | 'mobile';
   className?: string;
+  textColor?: string;
 }
 
 const SidebarItem: React.FC<SidebarItemProps> = ({
@@ -17,6 +18,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
   variant = 'internal',
   type = 'desktop',
   className = '',
+  textColor,
 }) => {
   const isExternal = variant === 'external';
   const isDesktop = type === 'desktop';
@@ -25,24 +27,16 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
     if (isDesktop) {
       return 'text-[40px] text-neutral-900 dark:text-white';
     } else {
-      return 'text-[64px] text-white';
+      return `text-[64px] ${textColor || 'text-white'}`;
     }
   };
 
   const getIconStyles = () => {
     const baseStyles = 'ml-2';
     if (isDesktop) {
-      return `${baseStyles} text-neutral-900 dark:text-white`;
+      return `${baseStyles}`;
     } else {
-      return `${baseStyles} text-white`;
-    }
-  };
-    
-  const getIconColor = () => {
-    if (isDesktop) {
-      return undefined;
-    } else {
-      return '#ffffff';
+      return `${baseStyles} ${textColor || 'text-white'}`;
     }
   };
 
@@ -50,18 +44,29 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
     if (isDesktop) {
       return 30;
     }
-    return 56; 
+    return 56;
   };
 
   const renderContent = () => (
     <>
       <span className={getTextStyles()}>{label}</span>
       {isExternal && (
-        <ArrowTopRightIcon
-          size={getIconSize()}
-          className={getIconStyles()}
-          color={getIconColor()}
-        />
+        <>
+          <span className={cn('ml-2', getIconStyles())}>
+            <span className="block dark:hidden">
+              <ArrowTopRightIcon
+                size={getIconSize()}
+                color="#000000"
+              />
+            </span>
+            <span className="hidden dark:block">
+              <ArrowTopRightIcon
+                size={getIconSize()}
+                color="#ffffff"
+              />
+            </span>
+          </span>
+        </>
       )}
     </>
   );

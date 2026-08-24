@@ -17,6 +17,7 @@ interface SidebarItemAuthProps {
   state?: 'loggedin' | 'loggedout';
   avatarSrc?: string;
   className?: string;
+  textColor?: string;
   userData?: {
     name: string;
     email: string;
@@ -35,6 +36,7 @@ const SidebarItemAuth: React.FC<SidebarItemAuthProps> = ({
   state = 'loggedout',
   avatarSrc = '/images/default-avatar.svg',
   className = '',
+  textColor,
   userData,
   onSignOut,
 }) => {
@@ -47,22 +49,31 @@ const SidebarItemAuth: React.FC<SidebarItemAuthProps> = ({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  // Calculate modal position when it opens - positioned ABOVE the button
   useEffect(() => {
     if (isModalOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       setModalPosition({
-        top: rect.top - 10, // Position above the button
+        top: rect.top - 10,
         left: rect.left + rect.width / 2,
       });
     }
   }, [isModalOpen]);
 
+  const getDisplayName = () => {
+    if (isLoggedIn && userData?.name) {
+      if (!isDesktop) {
+        return userData.name.split(' ')[0];
+      }
+      return userData.name;
+    }
+    return label;
+  };
+
   const getTextStyles = () => {
     if (isDesktop) {
       return 'text-[40px] text-neutral-900 dark:text-white';
     } else {
-      return 'text-[64px] text-white';
+      return `text-[64px] ${textColor || 'text-white'}`;
     }
   };
 
@@ -71,7 +82,7 @@ const SidebarItemAuth: React.FC<SidebarItemAuthProps> = ({
     if (isDesktop) {
       return `${baseStyles} text-neutral-900 dark:text-white`;
     } else {
-      return `${baseStyles} text-white`;
+      return `${baseStyles} ${textColor || 'text-white'}`;
     }
   };
 
@@ -79,6 +90,9 @@ const SidebarItemAuth: React.FC<SidebarItemAuthProps> = ({
     if (isDesktop) {
       return undefined;
     } else {
+      if (textColor === 'text-black dark:text-white') {
+        return '#000000';
+      }
       return '#ffffff';
     }
   };
@@ -125,7 +139,7 @@ const SidebarItemAuth: React.FC<SidebarItemAuthProps> = ({
           />
         </div>
       )}
-      <span className={getTextStyles()}>{label}</span>
+      <span className={getTextStyles()}>{getDisplayName()}</span>
       {isExternal && !isLoggedIn && (
         <ArrowRightIcon
           size={getIconSize()}
@@ -143,7 +157,7 @@ const SidebarItemAuth: React.FC<SidebarItemAuthProps> = ({
           ref={buttonRef}
           onClick={handleClick}
           className={cn(
-            'inline-flex items-center transition-opacity hover:opacity-80 w-full h-15 relative',
+            'inline-flex items-center transition-opacity hover:opacity-80 w-full h-24 lg:h-15 relative',
             className
           )}
         >
@@ -174,7 +188,7 @@ const SidebarItemAuth: React.FC<SidebarItemAuthProps> = ({
         target="_blank"
         rel="noopener noreferrer"
         className={cn(
-          'inline-flex items-center transition-opacity hover:opacity-80',
+          'inline-flex items-center transition-opacity hover:opacity-80 w-full h-24 lg:h-15',
           className
         )}
       >
@@ -187,7 +201,7 @@ const SidebarItemAuth: React.FC<SidebarItemAuthProps> = ({
     <Link
       href={href}
       className={cn(
-        'inline-flex items-center transition-opacity hover:opacity-80 w-full h-15',
+        'inline-flex items-center transition-opacity hover:opacity-80 w-full h-24 lg:h-16',
         className
       )}
     >

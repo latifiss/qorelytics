@@ -77,6 +77,7 @@ const SidebarMobile = ({ onClose }: SidebarMobileProps) => {
             href='/' 
             variant='internal' 
             type='mobile'
+            textColor="text-black dark:text-white"
             className={isActive('/') ? 'pl-6' : ''}
           />
         </div>
@@ -104,6 +105,7 @@ const SidebarMobile = ({ onClose }: SidebarMobileProps) => {
               { label: 'Product 3', href: '/product-3', variant: 'internal' },
             ]}
             onToggle={(isOpen) => console.log('Accordion is', isOpen ? 'open' : 'closed')}
+            textColor="text-black dark:text-white"
             className={isActive('/chats') ? 'pl-6' : ''}
           />
         </div>
@@ -127,6 +129,7 @@ const SidebarMobile = ({ onClose }: SidebarMobileProps) => {
             href="/pricing" 
             variant="internal" 
             type="mobile"
+            textColor="text-black dark:text-white"
             className={isActive('/pricing') ? 'pl-6' : ''}
           />
         </div>
@@ -150,6 +153,7 @@ const SidebarMobile = ({ onClose }: SidebarMobileProps) => {
             href="/blog" 
             variant="external" 
             type="mobile"
+            textColor="text-black dark:text-white"
             className={isActive('/blog') ? 'pl-6' : ''}
           />
         </div>
@@ -173,6 +177,7 @@ const SidebarMobile = ({ onClose }: SidebarMobileProps) => {
             href="/about" 
             variant="external" 
             type="mobile"
+            textColor="text-black dark:text-white"
             className={isActive('/about') ? 'pl-6' : ''}
           />
         </div>
@@ -207,7 +212,8 @@ const SidebarMobile = ({ onClose }: SidebarMobileProps) => {
                   }
                 : undefined
             }
-            className={isAuthActive ? "pl-6" : ""}
+            textColor="text-black dark:text-white"
+            className={isAuthActive ? 'pl-6' : ''}
           />
         </div>
       </div>

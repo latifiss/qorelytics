@@ -17,6 +17,7 @@ interface SidebarItemAccordionProps {
   }>;
   type?: 'desktop' | 'mobile';
   className?: string;
+  textColor?: string;
   onToggle?: (isOpen: boolean) => void;
 }
 
@@ -25,6 +26,7 @@ const SidebarItemAccordion: React.FC<SidebarItemAccordionProps> = ({
   items = [],
   type = 'desktop',
   className = '',
+  textColor,
   onToggle,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -36,25 +38,39 @@ const SidebarItemAccordion: React.FC<SidebarItemAccordionProps> = ({
   const getTextStyles = () =>
     isDesktop
       ? 'text-[40px] text-neutral-900 dark:text-white leading-none'
-      : 'text-[64px] text-white leading-none';
+      : `text-[64px] ${textColor || 'text-white'} leading-none`;
 
-  const getIconColor = () =>
-    isDesktop ? undefined : '#ffffff';
+  const getIconColor = () => {
+    if (!isDesktop) {
+      if (textColor === 'text-black dark:text-white') {
+        return '#000000';
+      }
+      return '#ffffff';
+    }
+    return undefined;
+  };
 
   const getIconSize = () => 40;
 
   const getChildTextStyles = () =>
     isDesktop
       ? 'text-[30px] text-neutral-900 dark:text-white'
-      : 'text-[30px] text-white';
+      : `text-[30px] ${textColor || 'text-white'}`;
 
   const getChildIconStyles = () =>
     isDesktop
       ? 'ml-2 text-neutral-900 dark:text-white'
-      : 'ml-2 text-white';
+      : `ml-2 ${textColor || 'text-white'}`;
 
-  const getChildIconColor = () =>
-    isDesktop ? undefined : '#ffffff';
+  const getChildIconColor = () => {
+    if (!isDesktop) {
+      if (textColor === 'text-black dark:text-white') {
+        return '#000000';
+      }
+      return '#ffffff';
+    }
+    return undefined;
+  };
 
   const getChildIconSize = () => 32;
 

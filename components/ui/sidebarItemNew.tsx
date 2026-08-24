@@ -9,6 +9,7 @@ interface SidebarItemNewProps {
   variant?: 'external' | 'internal';
   type?: 'desktop' | 'mobile';
   className?: string;
+  textColor?: string; // Add this prop
 }
 
 const SidebarItemNew: React.FC<SidebarItemNewProps> = ({
@@ -17,6 +18,7 @@ const SidebarItemNew: React.FC<SidebarItemNewProps> = ({
   variant = 'internal',
   type = 'desktop',
   className = '',
+  textColor, // Add this prop
 }) => {
   const isExternal = variant === 'external';
   const isDesktop = type === 'desktop';
@@ -25,7 +27,8 @@ const SidebarItemNew: React.FC<SidebarItemNewProps> = ({
     if (isDesktop) {
       return 'text-[40px] text-neutral-900 dark:text-white';
     } else {
-      return 'text-[64px] text-white';
+      // Use textColor prop if provided, otherwise default to white
+      return `text-[64px] ${textColor || 'text-white'}`;
     }
   };
 
@@ -34,7 +37,7 @@ const SidebarItemNew: React.FC<SidebarItemNewProps> = ({
     if (isDesktop) {
       return `${baseStyles} text-neutral-900 dark:text-white`;
     } else {
-      return `${baseStyles} text-white`;
+      return `${baseStyles} ${textColor || 'text-white'}`;
     }
   };
 
@@ -42,6 +45,10 @@ const SidebarItemNew: React.FC<SidebarItemNewProps> = ({
     if (isDesktop) {
       return undefined;
     } else {
+      // If textColor is 'text-black dark:text-white', use black for light mode
+      if (textColor === 'text-black dark:text-white') {
+        return '#000000';
+      }
       return '#ffffff';
     }
   };
