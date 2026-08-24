@@ -12,9 +12,17 @@ export type ColumnKind =
   | 'text'
   | 'unknown';
 
+export type TrendPeriod =
+  | 'day'
+  | 'week'
+  | 'month'
+  | 'quarter'
+  | 'year';
+
 export interface NumericStats {
   count: number;
   missing: number;
+  invalid: number;
   min: number | null;
   max: number | null;
   mean: number | null;
@@ -38,6 +46,7 @@ export interface CategoricalStats {
 export interface DateStats {
   count: number;
   missing: number;
+  invalid: number;
   min: string | null;
   max: string | null;
   spanDays: number | null;
@@ -50,35 +59,67 @@ export interface ColumnAnalysis {
   nullable: boolean;
   uniqueCount: number;
   missingCount: number;
+  invalidCount: number;
   missingPercentage: number;
+  uniquePercentage: number;
+  isLikelyIdentifier: boolean;
+  sampleValues: string[];
+
   numeric?: NumericStats;
   categorical?: CategoricalStats;
   date?: DateStats;
-  sampleValues: string[];
 }
 
 export interface TrendAnalysis {
   column: string;
+
+  period: TrendPeriod;
+
   direction:
     | 'increasing'
     | 'decreasing'
     | 'flat'
     | 'unknown';
+
   changePercentage: number | null;
+
   firstValue: number | null;
   lastValue: number | null;
+
+  slope: number | null;
+
+  periodCount: number;
+
+  populatedPeriods: number;
+
+  missingPeriods: number;
+
+  coveragePercentage: number;
+
+  aggregation:
+    | 'average'
+    | 'sum';
+
+  confidence:
+    | 'high'
+    | 'medium'
+    | 'low';
 }
 
 export interface CorrelationAnalysis {
   columnA: string;
   columnB: string;
   correlation: number;
+
   strength:
     | 'very-strong'
     | 'strong'
     | 'moderate'
     | 'weak';
+
   direction: 'positive' | 'negative';
+
+  sampleSize: number;
 }
 
 export interface DataQualityIssue {
@@ -89,11 +130,14 @@ export interface DataQualityIssue {
     | 'mostly-text'
     | 'invalid-values'
     | 'duplicate-rows';
+
   column?: string;
+
   severity:
     | 'high'
     | 'medium'
     | 'low';
+
   message: string;
 }
 
@@ -120,6 +164,7 @@ export interface DatasetAnalysis {
   dateDimensions: string[];
 
   trends: TrendAnalysis[];
+
   correlations: CorrelationAnalysis[];
 
   qualityIssues: DataQualityIssue[];
@@ -153,9 +198,13 @@ export interface ChartCandidate {
     | 'treemap';
 
   title: string;
+
   dimension?: string;
+
   measures: string[];
+
   reason: string;
+
   priority: number;
 }
 
@@ -164,6 +213,40 @@ export interface ChartCandidate {
 /* -------------------------------------------------------------------------- */
 
 type DataRow = Record<string, unknown>;
+
+interface ParsedDateValue {
+  date: Date;
+  timestamp: number;
+}
+
+/* -------------------------------------------------------------------------- */
+/* CONSTANTS                                                                  */
+/* -------------------------------------------------------------------------- */
+
+const MISSING_TOKENS = new Set([
+  '',
+  'null',
+  'undefined',
+  'n/a',
+  'na',
+  'nan',
+  'missing',
+  'none',
+  '-',
+  '--',
+]);
+
+const BOOLEAN_TOKENS = new Set([
+  'true',
+  'false',
+  'yes',
+  'no',
+  'y',
+  'n',
+]);
+
+const IDENTIFIER_NAME_PATTERN =
+  /(^|[_\-\s])(id|uuid|key|code|identifier|index|number)$/i;
 
 /* -------------------------------------------------------------------------- */
 /* HELPERS                                                                    */
@@ -212,9 +295,7 @@ function getProfileColumns(
         return null;
       })
       .filter(
-        (
-          name,
-        ): name is string =>
+        (name): name is string =>
           typeof name === 'string',
       );
 
@@ -226,9 +307,9 @@ function getProfileColumns(
   const names = new Set<string>();
 
   for (const row of rows) {
-    Object.keys(row).forEach((key) => {
+    for (const key of Object.keys(row)) {
       names.add(key);
-    });
+    }
   }
 
   return Array.from(names);
@@ -270,39 +351,44 @@ function isMissing(
   }
 
   if (typeof value === 'string') {
-    const normalized =
-      value.trim().toLowerCase();
-
-    return (
-      normalized === '' ||
-      normalized === 'null' ||
-      normalized === 'undefined' ||
-      normalized === 'n/a' ||
-      normalized === 'na' ||
-      normalized === 'nan' ||
-      normalized === 'missing'
+    return MISSING_TOKENS.has(
+      value.trim().toLowerCase(),
     );
   }
 
   return false;
 }
 
+function percentage(
+  numerator: number,
+  denominator: number,
+): number {
+  if (denominator === 0) {
+    return 0;
+  }
+
+  return (
+    (numerator / denominator) * 100
+  );
+}
+
+function round(
+  value: number,
+  decimals = 4,
+): number {
+  const factor =
+    10 ** decimals;
+
+  return (
+    Math.round(value * factor) /
+    factor
+  );
+}
+
 /* -------------------------------------------------------------------------- */
 /* NUMBER PARSING                                                             */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Convert a value to a number without treating arbitrary values as numbers.
- *
- * Supports:
- *   "$1,200"
- *   "€1,200.50"
- *   "25%"
- *   "1,000"
- *   1200
- *
- * Does not treat date-like strings as numeric values.
- */
 function toNumber(
   value: unknown,
 ): number | null {
@@ -322,22 +408,32 @@ function toNumber(
     return null;
   }
 
-  const normalized = trimmed
-    .replace(/[$€£¥₹,%]/g, '')
-    .replace(/,/g, '')
-    .trim();
+  let normalized = trimmed;
+
+  const isNegativeAccounting =
+    /^\(.*\)$/.test(normalized);
+
+  if (isNegativeAccounting) {
+    normalized = normalized.slice(
+      1,
+      -1,
+    );
+  }
+
+  normalized = normalized
+    .replace(
+      /[$€£¥₹₵₦,%]/g,
+      '',
+    )
+    .replace(/\s+/g, '')
+    .replace(/,/g, '');
 
   if (!normalized) {
     return null;
   }
 
   /*
-   * Prevent date-like values such as:
-   *
-   * 2025-01-01
-   * 2025-01-01T10:30:00Z
-   *
-   * from being interpreted as numbers.
+   * Never interpret ISO-like dates as numbers.
    */
   if (
     /^\d{4}-\d{1,2}-\d{1,2}(?:[T\s].*)?$/.test(
@@ -348,42 +444,37 @@ function toNumber(
   }
 
   /*
-   * Reject strings containing alphabetic characters.
-   *
-   * This prevents values such as:
-   *
-   * "12 customers"
-   * "USD 120"
-   * "Jan 2025"
-   *
-   * from becoming numeric.
+   * Reject strings containing letters.
    */
   if (/[a-z]/i.test(normalized)) {
     return null;
   }
 
   /*
-   * Only allow a complete numeric representation.
-   *
-   * Examples:
-   *   120
-   *   -120
-   *   120.50
-   *   .50
-   *   1.2e5
+   * Complete numeric representation.
    */
   const numericPattern =
     /^[+-]?(?:\d+(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?$/i;
 
-  if (!numericPattern.test(normalized)) {
+  if (
+    !numericPattern.test(
+      normalized,
+    )
+  ) {
     return null;
   }
 
-  const number = Number(normalized);
+  const number = Number(
+    normalized,
+  );
 
-  return Number.isFinite(number)
-    ? number
-    : null;
+  if (!Number.isFinite(number)) {
+    return null;
+  }
+
+  return isNegativeAccounting
+    ? -number
+    : number;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -401,29 +492,15 @@ function isBooleanLike(
     return false;
   }
 
-  const normalized =
-    value.trim().toLowerCase();
-
-  return [
-    'true',
-    'false',
-    'yes',
-    'no',
-    'y',
-    'n',
-  ].includes(normalized);
+  return BOOLEAN_TOKENS.has(
+    value.trim().toLowerCase(),
+  );
 }
 
 /* -------------------------------------------------------------------------- */
 /* DATE PARSING                                                               */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Parse only values that reasonably look like dates.
- *
- * JavaScript's Date parser is intentionally NOT used blindly because
- * it accepts many ambiguous values that are not actually dates.
- */
 function parseDate(
   value: unknown,
 ): Date | null {
@@ -446,7 +523,7 @@ function parseDate(
   }
 
   /*
-   * ISO-like dates:
+   * ISO:
    *
    * 2025-01-15
    * 2025-01-15T10:30:00Z
@@ -456,7 +533,7 @@ function parseDate(
     /^\d{4}-\d{1,2}-\d{1,2}(?:[T\s].*)?$/;
 
   /*
-   * Slash dates:
+   * Slash:
    *
    * 2025/01/15
    * 01/15/2025
@@ -466,7 +543,7 @@ function parseDate(
     /^(?:\d{4}\/\d{1,2}\/\d{1,2}|\d{1,2}\/\d{1,2}\/\d{4})(?:\s.*)?$/;
 
   /*
-   * Common textual dates:
+   * Textual:
    *
    * Jan 15, 2025
    * January 15, 2025
@@ -475,15 +552,22 @@ function parseDate(
     /^(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{1,2}(?:,\s*|\s+)\d{4}$/i;
 
   if (
-    !isoDatePattern.test(normalized) &&
-    !slashDatePattern.test(normalized) &&
-    !textualDatePattern.test(normalized)
+    !isoDatePattern.test(
+      normalized,
+    ) &&
+    !slashDatePattern.test(
+      normalized,
+    ) &&
+    !textualDatePattern.test(
+      normalized,
+    )
   ) {
     return null;
   }
 
-  const date =
-    new Date(normalized);
+  const date = new Date(
+    normalized,
+  );
 
   if (
     Number.isNaN(
@@ -496,14 +580,27 @@ function parseDate(
   return date;
 }
 
+function parseDateValue(
+  value: unknown,
+): ParsedDateValue | null {
+  const date = parseDate(value);
+
+  if (!date) {
+    return null;
+  }
+
+  return {
+    date,
+    timestamp: date.getTime(),
+  };
+}
+
 function looksLikeDateColumn(
   values: unknown[],
 ): boolean {
-  const validValues =
-    values.filter(
-      (value) =>
-        !isMissing(value),
-    );
+  const validValues = values.filter(
+    (value) => !isMissing(value),
+  );
 
   if (validValues.length < 3) {
     return false;
@@ -525,11 +622,9 @@ function looksLikeDateColumn(
 function looksLikeNumericColumn(
   values: unknown[],
 ): boolean {
-  const validValues =
-    values.filter(
-      (value) =>
-        !isMissing(value),
-    );
+  const validValues = values.filter(
+    (value) => !isMissing(value),
+  );
 
   if (validValues.length === 0) {
     return false;
@@ -552,39 +647,12 @@ function looksLikeNumericColumn(
 /* COLUMN TYPE DETECTION                                                      */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Determine the semantic type of a column.
- *
- * IMPORTANT:
- *
- * Detection order is:
- *
- *   boolean
- *   numeric
- *   date
- *   categorical
- *   text
- *
- * Numeric detection intentionally happens BEFORE date detection.
- *
- * This prevents values such as:
- *
- *   120
- *   12000
- *   202401
- *   202402
- *   202403
- *
- * from being incorrectly interpreted as dates.
- */
 function determineColumnKind(
   values: unknown[],
 ): ColumnKind {
-  const validValues =
-    values.filter(
-      (value) =>
-        !isMissing(value),
-    );
+  const validValues = values.filter(
+    (value) => !isMissing(value),
+  );
 
   if (validValues.length === 0) {
     return 'unknown';
@@ -602,7 +670,15 @@ function determineColumnKind(
   }
 
   /*
-   * Numeric BEFORE date.
+   * Numeric before date.
+   *
+   * This prevents values such as:
+   *
+   * 202401
+   * 202402
+   * 202403
+   *
+   * from becoming dates.
    */
   if (
     looksLikeNumericColumn(
@@ -623,10 +699,6 @@ function determineColumnKind(
     return 'date';
   }
 
-  /*
-   * Determine whether the remaining values are categorical
-   * or free-form text.
-   */
   const uniqueValues =
     new Set(
       validValues.map(
@@ -634,15 +706,19 @@ function determineColumnKind(
       ),
     );
 
+  const uniqueRatio =
+    uniqueValues.size /
+    validValues.length;
+
+  /*
+   * Categorical:
+   *
+   * - <= 100 unique values
+   * - or <= 50% unique
+   */
   if (
-    uniqueValues.size <=
-    Math.min(
-      100,
-      Math.max(
-        1,
-        validValues.length * 0.5,
-      ),
-    )
+    uniqueValues.size <= 100 ||
+    uniqueRatio <= 0.5
   ) {
     return 'categorical';
   }
@@ -661,9 +737,7 @@ function median(
     return null;
   }
 
-  const sorted = [
-    ...values,
-  ].sort(
+  const sorted = [...values].sort(
     (a, b) => a - b,
   );
 
@@ -686,6 +760,9 @@ function median(
   return sorted[middle];
 }
 
+/*
+ * Population standard deviation.
+ */
 function standardDeviation(
   values: number[],
 ): number | null {
@@ -704,47 +781,12 @@ function standardDeviation(
     values.reduce(
       (sum, value) =>
         sum +
-        Math.pow(
-          value - mean,
-          2,
-        ),
+        (value - mean) ** 2,
       0,
     ) / values.length;
 
   return Math.sqrt(
     variance,
-  );
-}
-
-function percentage(
-  numerator: number,
-  denominator: number,
-): number {
-  if (denominator === 0) {
-    return 0;
-  }
-
-  return (
-    (numerator /
-      denominator) *
-    100
-  );
-}
-
-function round(
-  value: number,
-  decimals = 4,
-): number {
-  const factor =
-    Math.pow(
-      10,
-      decimals,
-    );
-
-  return (
-    Math.round(
-      value * factor,
-    ) / factor
   );
 }
 
@@ -755,25 +797,30 @@ function round(
 function analyzeNumericColumn(
   values: unknown[],
 ): NumericStats {
-  const numericValues =
-    values
-      .filter(
-        (value) =>
-          !isMissing(value),
-      )
-      .map(toNumber)
-      .filter(
-        (
-          value,
-        ): value is number =>
-          value !== null,
-      );
+  const numericValues: number[] = [];
 
-  const missing =
-    values.filter(
-      (value) =>
-        isMissing(value),
-    ).length;
+  let missing = 0;
+  let invalid = 0;
+
+  for (const value of values) {
+    if (isMissing(value)) {
+      missing++;
+      continue;
+    }
+
+    const numeric = toNumber(
+      value,
+    );
+
+    if (numeric === null) {
+      invalid++;
+      continue;
+    }
+
+    numericValues.push(
+      numeric,
+    );
+  }
 
   if (
     numericValues.length ===
@@ -782,6 +829,7 @@ function analyzeNumericColumn(
     return {
       count: 0,
       missing,
+      invalid,
       min: null,
       max: null,
       mean: null,
@@ -792,73 +840,48 @@ function analyzeNumericColumn(
     };
   }
 
-  const sum =
-    numericValues.reduce(
-      (total, value) =>
-        total + value,
-      0,
-    );
+  let sum = 0;
+  let min =
+    numericValues[0];
+  let max =
+    numericValues[0];
+
+  for (const value of numericValues) {
+    sum += value;
+
+    if (value < min) {
+      min = value;
+    }
+
+    if (value > max) {
+      max = value;
+    }
+  }
 
   return {
     count:
       numericValues.length,
-
     missing,
-
-    min: Math.min(
-      ...numericValues,
-    ),
-
-    max: Math.max(
-      ...numericValues,
-    ),
-
+    invalid,
+    min,
+    max,
     mean:
       sum /
       numericValues.length,
-
     median:
       median(
         numericValues,
       ),
-
     sum,
-
     standardDeviation:
       standardDeviation(
         numericValues,
       ),
-
     uniqueCount:
       new Set(
         numericValues,
       ).size,
   };
-}
-
-/* -------------------------------------------------------------------------- */
-/* INVALID NUMERIC VALUES                                                     */
-/* -------------------------------------------------------------------------- */
-
-function countInvalidNumericValues(
-  values: unknown[],
-): number {
-  let invalid = 0;
-
-  for (const value of values) {
-    if (isMissing(value)) {
-      continue;
-    }
-
-    if (
-      toNumber(value) ===
-      null
-    ) {
-      invalid++;
-    }
-  }
-
-  return invalid;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -868,16 +891,20 @@ function countInvalidNumericValues(
 function analyzeCategoricalColumn(
   values: unknown[],
 ): CategoricalStats {
-  const validValues =
-    values.filter(
-      (value) =>
-        !isMissing(value),
-    );
-
   const counts =
-    new Map<string, number>();
+    new Map<
+      string,
+      number
+    >();
 
-  for (const value of validValues) {
+  let missing = 0;
+
+  for (const value of values) {
+    if (isMissing(value)) {
+      missing++;
+      continue;
+    }
+
     const normalized =
       normalizeString(value);
 
@@ -888,6 +915,9 @@ function analyzeCategoricalColumn(
       ) ?? 0) + 1,
     );
   }
+
+  const validCount =
+    values.length - missing;
 
   const topValues =
     Array.from(
@@ -905,7 +935,7 @@ function analyzeCategoricalColumn(
           percentage: round(
             percentage(
               count,
-              validValues.length,
+              validCount,
             ),
             2,
           ),
@@ -913,16 +943,10 @@ function analyzeCategoricalColumn(
       );
 
   return {
-    count:
-      validValues.length,
-
-    missing:
-      values.length -
-      validValues.length,
-
+    count: validCount,
+    missing,
     uniqueCount:
       counts.size,
-
     topValues,
   };
 }
@@ -934,32 +958,34 @@ function analyzeCategoricalColumn(
 function analyzeDateColumn(
   values: unknown[],
 ): DateStats {
-  const nonMissing =
-    values.filter(
-      (value) =>
-        !isMissing(value),
+  let missing = 0;
+  let invalid = 0;
+
+  const dates: Date[] = [];
+
+  for (const value of values) {
+    if (isMissing(value)) {
+      missing++;
+      continue;
+    }
+
+    const date = parseDate(
+      value,
     );
 
-  const dates =
-    nonMissing
-      .map(parseDate)
-      .filter(
-        (
-          date,
-        ): date is Date =>
-          date !== null,
-      );
+    if (!date) {
+      invalid++;
+      continue;
+    }
 
-  const missing =
-    values.filter(
-      (value) =>
-        isMissing(value),
-    ).length;
+    dates.push(date);
+  }
 
   if (dates.length === 0) {
     return {
       count: 0,
-      missing: values.length,
+      missing,
+      invalid,
       min: null,
       max: null,
       spanDays: null,
@@ -967,62 +993,52 @@ function analyzeDateColumn(
     };
   }
 
-  const timestamps =
-    dates.map(
-      (date) =>
-        date.getTime(),
+  let minTime =
+    dates[0].getTime();
+
+  let maxTime =
+    dates[0].getTime();
+
+  const uniqueDates =
+    new Set<string>();
+
+  for (const date of dates) {
+    const timestamp =
+      date.getTime();
+
+    minTime = Math.min(
+      minTime,
+      timestamp,
     );
 
-  const minTime =
-    Math.min(
-      ...timestamps,
+    maxTime = Math.max(
+      maxTime,
+      timestamp,
     );
 
-  const maxTime =
-    Math.max(
-      ...timestamps,
+    uniqueDates.add(
+      date.toISOString(),
     );
+  }
 
   const spanDays =
     (maxTime - minTime) /
-    (1000 *
-      60 *
-      60 *
-      24);
-
-  const uniqueDates =
-    new Set(
-      dates.map(
-        (date) =>
-          date
-            .toISOString()
-            .split('T')[0],
-      ),
-    );
+    (1000 * 60 * 60 * 24);
 
   return {
-    count:
-      dates.length,
-
-    missing:
-      missing +
-      (nonMissing.length -
-        dates.length),
-
+    count: dates.length,
+    missing,
+    invalid,
     min: new Date(
       minTime,
     ).toISOString(),
-
     max: new Date(
       maxTime,
     ).toISOString(),
-
-    spanDays:
-      round(
-        spanDays,
-        2,
-      ),
-
+    spanDays: round(
+      spanDays,
+      2,
+    ),
     uniqueCount:
       uniqueDates.size,
   };
@@ -1032,14 +1048,61 @@ function analyzeDateColumn(
 /* COLUMN ANALYSIS                                                            */
 /* -------------------------------------------------------------------------- */
 
+function isLikelyIdentifier(
+  name: string,
+  kind: ColumnKind,
+  uniqueCount: number,
+  validCount: number,
+): boolean {
+  if (
+    validCount === 0 ||
+    kind !== 'numeric' &&
+      kind !== 'categorical' &&
+      kind !== 'text'
+  ) {
+    return false;
+  }
+
+  const uniqueRatio =
+    uniqueCount /
+    validCount;
+
+  if (
+    IDENTIFIER_NAME_PATTERN.test(
+      name,
+    ) &&
+    uniqueRatio >= 0.8
+  ) {
+    return true;
+  }
+
+  /*
+   * A near-unique text/categorical column is often:
+   *
+   * customer_id
+   * transaction_id
+   * email
+   * UUID
+   *
+   * and should not automatically become a dimension.
+   */
+  if (
+    uniqueRatio >= 0.98 &&
+    validCount >= 10
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 function analyzeColumn(
   name: string,
   rows: DataRow[],
 ): ColumnAnalysis {
   const values =
     rows.map(
-      (row) =>
-        row[name],
+      (row) => row[name],
     );
 
   const kind =
@@ -1064,6 +1127,23 @@ function analyzeColumn(
     values.length -
     validValues.length;
 
+  const invalidCount =
+    kind === 'numeric'
+      ? values.filter(
+          (value) =>
+            !isMissing(value) &&
+            toNumber(value) ===
+              null,
+        ).length
+      : kind === 'date'
+        ? values.filter(
+            (value) =>
+              !isMissing(value) &&
+              parseDate(value) ===
+                null,
+          ).length
+        : 0;
+
   const sampleValues =
     Array.from(
       new Set(
@@ -1073,33 +1153,43 @@ function analyzeColumn(
       ),
     ).slice(0, 5);
 
-  const result: ColumnAnalysis =
-    {
-      name,
-      kind,
+  const uniquePercentage =
+    round(
+      percentage(
+        uniqueCount,
+        validValues.length,
+      ),
+      2,
+    );
 
-      nullable:
-        missingCount > 0,
-
-      uniqueCount,
-
-      missingCount,
-
-      missingPercentage:
-        round(
-          percentage(
-            missingCount,
-            rows.length,
-          ),
-          2,
+  const result: ColumnAnalysis = {
+    name,
+    kind,
+    nullable:
+      missingCount > 0,
+    uniqueCount,
+    missingCount,
+    invalidCount,
+    missingPercentage:
+      round(
+        percentage(
+          missingCount,
+          rows.length,
         ),
+        2,
+      ),
+    uniquePercentage,
+    isLikelyIdentifier:
+      isLikelyIdentifier(
+        name,
+        kind,
+        uniqueCount,
+        validValues.length,
+      ),
+    sampleValues,
+  };
 
-      sampleValues,
-    };
-
-  if (
-    kind === 'numeric'
-  ) {
+  if (kind === 'numeric') {
     result.numeric =
       analyzeNumericColumn(
         values,
@@ -1107,7 +1197,8 @@ function analyzeColumn(
   }
 
   if (
-    kind === 'categorical'
+    kind ===
+    'categorical'
   ) {
     result.categorical =
       analyzeCategoricalColumn(
@@ -1115,9 +1206,7 @@ function analyzeColumn(
       );
   }
 
-  if (
-    kind === 'date'
-  ) {
+  if (kind === 'date') {
     result.date =
       analyzeDateColumn(
         values,
@@ -1191,11 +1280,15 @@ function countDuplicateRows(
       stableSerialize(row);
 
     if (
-      seen.has(serialized)
+      seen.has(
+        serialized,
+      )
     ) {
       duplicates++;
     } else {
-      seen.add(serialized);
+      seen.add(
+        serialized,
+      );
     }
   }
 
@@ -1217,19 +1310,23 @@ function pearsonCorrelation(
     return null;
   }
 
+  let sumX = 0;
+  let sumY = 0;
+
+  for (
+    let index = 0;
+    index < x.length;
+    index++
+  ) {
+    sumX += x[index];
+    sumY += y[index];
+  }
+
   const meanX =
-    x.reduce(
-      (sum, value) =>
-        sum + value,
-      0,
-    ) / x.length;
+    sumX / x.length;
 
   const meanY =
-    y.reduce(
-      (sum, value) =>
-        sum + value,
-      0,
-    ) / y.length;
+    sumY / y.length;
 
   let numerator = 0;
   let denominatorX = 0;
@@ -1304,12 +1401,14 @@ function calculateCorrelations(
 
   for (
     let i = 0;
-    i < numericColumns.length;
+    i <
+    numericColumns.length;
     i++
   ) {
     for (
       let j = i + 1;
-      j < numericColumns.length;
+      j <
+      numericColumns.length;
       j++
     ) {
       const columnA =
@@ -1318,49 +1417,39 @@ function calculateCorrelations(
       const columnB =
         numericColumns[j];
 
-      const pairs: Array<{
-        x: number;
-        y: number;
-      }> = [];
+      const x: number[] = [];
+      const y: number[] = [];
 
       for (const row of rows) {
-        const x =
+        const valueA =
           toNumber(
             row[columnA],
           );
 
-        const y =
+        const valueB =
           toNumber(
             row[columnB],
           );
 
         if (
-          x !== null &&
-          y !== null
+          valueA === null ||
+          valueB === null
         ) {
-          pairs.push({
-            x,
-            y,
-          });
+          continue;
         }
+
+        x.push(valueA);
+        y.push(valueB);
       }
 
-      if (
-        pairs.length < 3
-      ) {
+      if (x.length < 3) {
         continue;
       }
 
       const correlation =
         pearsonCorrelation(
-          pairs.map(
-            (pair) =>
-              pair.x,
-          ),
-          pairs.map(
-            (pair) =>
-              pair.y,
-          ),
+          x,
+          y,
         );
 
       if (
@@ -1369,9 +1458,6 @@ function calculateCorrelations(
         continue;
       }
 
-      /*
-       * Ignore extremely weak relationships.
-       */
       if (
         Math.abs(
           correlation,
@@ -1383,22 +1469,21 @@ function calculateCorrelations(
       results.push({
         columnA,
         columnB,
-
         correlation:
           round(
             correlation,
             4,
           ),
-
         strength:
           correlationStrength(
             correlation,
           ),
-
         direction:
           correlation >= 0
             ? 'positive'
             : 'negative',
+        sampleSize:
+          x.length,
       });
     }
   }
@@ -1415,197 +1500,642 @@ function calculateCorrelations(
 }
 
 /* -------------------------------------------------------------------------- */
-/* TREND ANALYSIS                                                             */
+/* TREND PERIOD DETECTION                                                     */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Determine the most appropriate temporal granularity.
+ *
+ * Examples:
+ *
+ * 2025-01-01
+ * 2025-01-02
+ * 2025-01-03
+ * -> day
+ *
+ * weekly observations
+ * -> week
+ *
+ * monthly observations
+ * -> month
+ *
+ * quarterly observations
+ * -> quarter
+ *
+ * yearly observations
+ * -> year
+ */
+function inferTrendPeriod(
+  dates: Date[],
+): TrendPeriod {
+  if (dates.length < 2) {
+    return 'day';
+  }
+
+  const sorted =
+    [...dates].sort(
+      (a, b) =>
+        a.getTime() -
+        b.getTime(),
+    );
+
+  const deltas: number[] = [];
+
+  for (
+    let i = 1;
+    i < sorted.length;
+    i++
+  ) {
+    const delta =
+      (sorted[i].getTime() -
+        sorted[i - 1].getTime()) /
+      (1000 * 60 * 60 * 24);
+
+    if (delta > 0) {
+      deltas.push(delta);
+    }
+  }
+
+  if (deltas.length === 0) {
+    return 'day';
+  }
+
+  const sortedDeltas =
+    [...deltas].sort(
+      (a, b) => a - b,
+    );
+
+  const middle =
+    Math.floor(
+      sortedDeltas.length / 2,
+    );
+
+  const medianDelta =
+    sortedDeltas.length % 2 === 0
+      ? (sortedDeltas[
+          middle - 1
+        ] +
+          sortedDeltas[middle]) /
+        2
+      : sortedDeltas[middle];
+
+  if (medianDelta <= 1.5) {
+    return 'day';
+  }
+
+  if (medianDelta <= 10) {
+    return 'week';
+  }
+
+  if (medianDelta <= 45) {
+    return 'month';
+  }
+
+  if (medianDelta <= 120) {
+    return 'quarter';
+  }
+
+  return 'year';
+}
+
+/* -------------------------------------------------------------------------- */
+/* PERIOD BUCKETING                                                           */
+/* -------------------------------------------------------------------------- */
+
+function startOfWeek(
+  date: Date,
+): Date {
+  const result =
+    new Date(date);
+
+  result.setHours(
+    0,
+    0,
+    0,
+    0,
+  );
+
+  /*
+   * Monday-based week.
+   */
+  const day =
+    result.getDay();
+
+  const difference =
+    day === 0
+      ? -6
+      : 1 - day;
+
+  result.setDate(
+    result.getDate() +
+      difference,
+  );
+
+  return result;
+}
+
+function getPeriodKey(
+  date: Date,
+  period: TrendPeriod,
+): string {
+  const year =
+    date.getUTCFullYear();
+
+  const month =
+    date.getUTCMonth();
+
+  const day =
+    date.getUTCDate();
+
+  switch (period) {
+    case 'day':
+      return [
+        year,
+        String(month + 1).padStart(
+          2,
+          '0',
+        ),
+        String(day).padStart(
+          2,
+          '0',
+        ),
+      ].join('-');
+
+    case 'week': {
+      const weekStart =
+        startOfWeek(
+          new Date(
+            Date.UTC(
+              year,
+              month,
+              day,
+            ),
+          ),
+        );
+
+      return weekStart
+        .toISOString()
+        .slice(0, 10);
+    }
+
+    case 'month':
+      return `${year}-${String(
+        month + 1,
+      ).padStart(2, '0')}`;
+
+    case 'quarter': {
+      const quarter =
+        Math.floor(
+          month / 3,
+        ) + 1;
+
+      return `${year}-Q${quarter}`;
+    }
+
+    case 'year':
+      return String(year);
+  }
+}
+
+function getPeriodTimestamp(
+  periodKey: string,
+  period: TrendPeriod,
+): number {
+  if (
+    period === 'quarter'
+  ) {
+    const match =
+      /^(\d{4})-Q([1-4])$/.exec(
+        periodKey,
+      );
+
+    if (!match) {
+      return NaN;
+    }
+
+    const year =
+      Number(match[1]);
+
+    const quarter =
+      Number(match[2]);
+
+    return Date.UTC(
+      year,
+      (quarter - 1) * 3,
+      1,
+    );
+  }
+
+  if (
+    period === 'year'
+  ) {
+    return Date.UTC(
+      Number(periodKey),
+      0,
+      1,
+    );
+  }
+
+  if (
+    period === 'month'
+  ) {
+    const match =
+      /^(\d{4})-(\d{2})$/.exec(
+        periodKey,
+      );
+
+    if (!match) {
+      return NaN;
+    }
+
+    return Date.UTC(
+      Number(match[1]),
+      Number(match[2]) - 1,
+      1,
+    );
+  }
+
+  return new Date(
+    `${periodKey}T00:00:00Z`,
+  ).getTime();
+}
+
+/* -------------------------------------------------------------------------- */
+/* LINEAR REGRESSION                                                          */
+/* -------------------------------------------------------------------------- */
+
+function calculateRegressionSlope(
+  values: number[],
+): number | null {
+  if (values.length < 2) {
+    return null;
+  }
+
+  const n =
+    values.length;
+
+  let sumX = 0;
+  let sumY = 0;
+  let sumXY = 0;
+  let sumXX = 0;
+
+  for (
+    let i = 0;
+    i < n;
+    i++
+  ) {
+    const x = i;
+    const y = values[i];
+
+    sumX += x;
+    sumY += y;
+    sumXY += x * y;
+    sumXX += x * x;
+  }
+
+  const denominator =
+    n * sumXX -
+    sumX * sumX;
+
+  if (
+    denominator === 0
+  ) {
+    return null;
+  }
+
+  return (
+    (n * sumXY -
+      sumX * sumY) /
+    denominator
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* TREND CONFIDENCE                                                           */
+/* -------------------------------------------------------------------------- */
+
+function determineTrendConfidence(
+  periodCount: number,
+  coveragePercentage: number,
+  values: number[],
+): TrendAnalysis['confidence'] {
+  if (
+    periodCount >= 12 &&
+    coveragePercentage >= 80 &&
+    values.length >= 12
+  ) {
+    return 'high';
+  }
+
+  if (
+    periodCount >= 6 &&
+    coveragePercentage >= 60 &&
+    values.length >= 6
+  ) {
+    return 'medium';
+  }
+
+  return 'low';
+}
+
+/* -------------------------------------------------------------------------- */
+/* PERIOD-AWARE TREND ANALYSIS                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Production-grade trend calculation.
+ *
+ * Important properties:
+ *
+ * 1. Never relies on original row order.
+ * 2. Groups duplicate observations into temporal periods.
+ * 3. Automatically chooses day/week/month/quarter/year.
+ * 4. Uses one observation per period.
+ * 5. Uses the average for ordinary measures.
+ * 6. Uses endpoint windows for percentage change.
+ * 7. Uses regression slope for direction.
+ * 8. Reports sparse/missing periods.
+ */
 function calculateTrends(
   rows: DataRow[],
   dateColumn: string | undefined,
   numericColumns: string[],
 ): TrendAnalysis[] {
-  if (!dateColumn || numericColumns.length === 0) {
+  if (
+    !dateColumn ||
+    numericColumns.length === 0
+  ) {
     return [];
   }
 
-  /**
-   * Group rows by calendar date.
-   *
-   * This is important because a dataset can contain many rows
-   * for the same date:
-   *
-   * 2025-01-01 -> 500 rows
-   * 2025-01-02 -> 500 rows
-   * 2025-01-03 -> 500 rows
-   *
-   * We want each date to contribute one observation to the
-   * time-series trend rather than letting row frequency
-   * influence the result.
+  /*
+   * Collect valid dates first.
    */
-  const groupedByDate = new Map<
-    string,
-    Map<string, number[]>
-  >();
+  const parsedRows: Array<{
+    date: Date;
+    values: Record<
+      string,
+      number
+    >;
+  }> = [];
+
+  const dates: Date[] = [];
 
   for (const row of rows) {
-    const date = parseDate(row[dateColumn]);
+    const parsed =
+      parseDateValue(
+        row[dateColumn],
+      );
 
-    if (!date) {
+    if (!parsed) {
       continue;
     }
 
-    /**
-     * Normalize to calendar date.
-     *
-     * This means:
-     *
-     * 2025-01-01T08:00:00
-     * 2025-01-01T14:00:00
-     *
-     * are treated as the same time period.
-     */
-    const dateKey = date
-      .toISOString()
-      .split('T')[0];
+    const values: Record<
+      string,
+      number
+    > = {};
 
-    let dateValues =
-      groupedByDate.get(dateKey);
+    for (const column of numericColumns) {
+      const value =
+        toNumber(
+          row[column],
+        );
 
-    if (!dateValues) {
-      dateValues = new Map<
-        string,
-        number[]
-      >();
+      if (
+        value !== null
+      ) {
+        values[column] =
+          value;
+      }
+    }
 
-      groupedByDate.set(
-        dateKey,
-        dateValues,
+    if (
+      Object.keys(
+        values,
+      ).length === 0
+    ) {
+      continue;
+    }
+
+    dates.push(
+      parsed.date,
+    );
+
+    parsedRows.push({
+      date: parsed.date,
+      values,
+    });
+  }
+
+  if (dates.length < 2) {
+    return [];
+  }
+
+  const period =
+    inferTrendPeriod(
+      dates,
+    );
+
+  /*
+   * Map:
+   *
+   * period -> measure -> values
+   */
+  const grouped =
+    new Map<
+      string,
+      Map<string, number[]>
+    >();
+
+  for (const row of parsedRows) {
+    const periodKey =
+      getPeriodKey(
+        row.date,
+        period,
+      );
+
+    let periodValues =
+      grouped.get(
+        periodKey,
+      );
+
+    if (!periodValues) {
+      periodValues =
+        new Map<
+          string,
+          number[]
+        >();
+
+      grouped.set(
+        periodKey,
+        periodValues,
       );
     }
 
-    for (const column of numericColumns) {
-      const value = toNumber(
-        row[column],
-      );
-
-      if (value === null) {
-        continue;
-      }
-
+    for (const [
+      column,
+      value,
+    ] of Object.entries(
+      row.values,
+    )) {
       const values =
-        dateValues.get(column) ?? [];
+        periodValues.get(
+          column,
+        ) ?? [];
 
       values.push(value);
 
-      dateValues.set(
+      periodValues.set(
         column,
         values,
       );
     }
   }
 
-  /**
-   * Convert grouped observations into one value per
-   * date and numeric measure.
-   *
-   * Example:
-   *
-   * Date       Revenue rows       Daily average
-   * ------------------------------------------------
-   * Jan 1      100, 120, 110       110
-   * Jan 2      130, 140, 150       140
-   * Jan 3      160, 170, 180       170
+  /*
+   * Sort actual periods chronologically.
    */
-  const timePeriods = Array.from(
-    groupedByDate.entries(),
-  )
-    .map(
-      ([dateKey, columnValues]) => {
-        const values: Record<
-          string,
-          number
-        > = {};
-
-        for (const column of numericColumns) {
-          const columnValuesForDate =
-            columnValues.get(column);
-
-          if (
-            !columnValuesForDate ||
-            columnValuesForDate.length === 0
-          ) {
-            continue;
-          }
-
-          const sum =
-            columnValuesForDate.reduce(
-              (total, value) =>
-                total + value,
-              0,
-            );
-
-          values[column] =
-            sum /
-            columnValuesForDate.length;
-        }
-
-        return {
-          date: new Date(
-            `${dateKey}T00:00:00Z`,
+  const periods =
+    Array.from(
+      grouped.keys(),
+    )
+      .map(
+        (key) => ({
+          key,
+          timestamp:
+            getPeriodTimestamp(
+              key,
+              period,
+            ),
+        }),
+      )
+      .filter(
+        (item) =>
+          Number.isFinite(
+            item.timestamp,
           ),
-          values,
-        };
-      },
-    )
-    .filter(
-      (period) =>
-        Object.keys(
-          period.values,
-        ).length > 0,
-    )
-    .sort(
-      (a, b) =>
-        a.date.getTime() -
-        b.date.getTime(),
-    );
+      )
+      .sort(
+        (a, b) =>
+          a.timestamp -
+          b.timestamp,
+      );
 
-  if (timePeriods.length < 2) {
+  if (periods.length < 2) {
     return [];
   }
 
-  const trends: TrendAnalysis[] = [];
+  const trends: TrendAnalysis[] =
+    [];
 
   for (const column of numericColumns) {
-    /**
-     * Only keep time periods where this particular
-     * measure actually has a value.
+    /*
+     * One aggregated value per period.
      */
-    const values = timePeriods
-      .map(
-        (period) =>
-          period.values[column],
-      )
-      .filter(
-        (
-          value,
-        ): value is number =>
-          value !== undefined &&
-          Number.isFinite(value),
-      );
+    const observations: Array<{
+      timestamp: number;
+      value: number;
+    }> = [];
 
-    if (values.length < 2) {
+    for (const item of periods) {
+      const periodValues =
+        grouped
+          .get(item.key)
+          ?.get(column);
+
+      if (
+        !periodValues ||
+        periodValues.length === 0
+      ) {
+        continue;
+      }
+
+      /*
+       * Average aggregation is intentionally used
+       * here because a generic analyzer cannot know
+       * whether a numeric field is additive revenue,
+       * inventory, a rate, a score, etc.
+       *
+       * The actual chart engine / semantic layer can
+       * later choose SUM when it knows the measure semantics.
+       */
+      const sum =
+        periodValues.reduce(
+          (total, value) =>
+            total + value,
+          0,
+        );
+
+      const average =
+        sum /
+        periodValues.length;
+
+      observations.push({
+        timestamp:
+          item.timestamp,
+        value: average,
+      });
+    }
+
+    if (
+      observations.length < 2
+    ) {
       continue;
     }
 
-    /**
-     * Compare the beginning and end of the time series.
-     *
-     * We use at least one observation and up to 10%
-     * of the available time periods.
+    /*
+     * The observations are already chronologically
+     * ordered because periods are ordered above.
      */
-    const windowSize = Math.max(
-      1,
-      Math.floor(values.length * 0.1),
-    );
+    const values =
+      observations.map(
+        (item) =>
+          item.value,
+      );
+
+    /*
+     * Determine coverage.
+     */
+    const periodCount =
+      periods.length;
+
+    const populatedPeriods =
+      observations.length;
+
+    const missingPeriods =
+      Math.max(
+        0,
+        periodCount -
+          populatedPeriods,
+      );
+
+    const coveragePercentage =
+      round(
+        percentage(
+          populatedPeriods,
+          periodCount,
+        ),
+        2,
+      );
+
+    /*
+     * Use a window rather than one individual
+     * observation at either end.
+     *
+     * This protects against a noisy first/last period.
+     */
+    const windowSize =
+      Math.max(
+        1,
+        Math.min(
+          3,
+          Math.floor(
+            observations.length *
+              0.1,
+          ),
+        ),
+      );
 
     const firstWindow =
       values.slice(
@@ -1638,45 +2168,90 @@ function calculateTrends(
       | number
       | null = null;
 
-    /**
-     * If the starting value is zero, percentage change
-     * is undefined.
-     */
-    if (firstValue !== 0) {
-      changePercentage = round(
-        (
-          (lastValue -
+    if (
+      firstValue !== 0
+    ) {
+      changePercentage =
+        round(
+          ((lastValue -
             firstValue) /
-          Math.abs(firstValue)
-        ) * 100,
-        2,
-      );
+            Math.abs(
+              firstValue,
+            )) *
+            100,
+          2,
+        );
     }
+
+    /*
+     * Regression slope is much more useful than
+     * simply comparing the first and last values.
+     */
+    const slope =
+      calculateRegressionSlope(
+        values,
+      );
+
+    /*
+     * Normalize the slope relative to the
+     * average magnitude of the series.
+     */
+    const absoluteMean =
+      values.reduce(
+        (sum, value) =>
+          sum +
+          Math.abs(value),
+        0,
+      ) / values.length;
+
+    const normalizedSlope =
+      absoluteMean === 0 ||
+      slope === null
+        ? 0
+        : slope /
+          absoluteMean;
 
     let direction:
       TrendAnalysis['direction'] =
       'unknown';
 
+    /*
+     * A 1% normalized slope per period is a
+     * meaningful default threshold.
+     *
+     * This prevents tiny floating-point movements
+     * from being reported as trends.
+     */
     if (
-      changePercentage !== null
+      normalizedSlope >
+      0.01
     ) {
-      if (
-        changePercentage > 3
-      ) {
-        direction =
-          'increasing';
-      } else if (
-        changePercentage < -3
-      ) {
-        direction =
-          'decreasing';
-      } else {
-        direction = 'flat';
-      }
+      direction =
+        'increasing';
+    } else if (
+      normalizedSlope <
+      -0.01
+    ) {
+      direction =
+        'decreasing';
+    } else {
+      direction = 'flat';
     }
+
+    /*
+     * If the data is extremely sparse, don't
+     * overstate certainty.
+     */
+    const confidence =
+      determineTrendConfidence(
+        periodCount,
+        coveragePercentage,
+        values,
+      );
 
     trends.push({
       column,
+      period,
       direction,
       changePercentage,
       firstValue: round(
@@ -1687,6 +2262,20 @@ function calculateTrends(
         lastValue,
         4,
       ),
+      slope:
+        slope === null
+          ? null
+          : round(
+              slope,
+              6,
+            ),
+      periodCount,
+      populatedPeriods,
+      missingPeriods,
+      coveragePercentage,
+      aggregation:
+        'average',
+      confidence,
     });
   }
 
@@ -1694,17 +2283,203 @@ function calculateTrends(
     (a, b) => {
       const aChange =
         Math.abs(
-          a.changePercentage ?? 0,
+          a.changePercentage ??
+            0,
         );
 
       const bChange =
         Math.abs(
-          b.changePercentage ?? 0,
+          b.changePercentage ??
+            0,
         );
 
-      return bChange - aChange;
+      return (
+        bChange -
+        aChange
+      );
     },
   );
+}
+
+/* -------------------------------------------------------------------------- */
+/* DATE COLUMN SELECTION                                                      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Don't blindly use dateColumns[0].
+ *
+ * Prefer the date column that:
+ *
+ * - has the most valid dates
+ * - has multiple unique periods
+ * - has the largest temporal span
+ */
+function choosePrimaryDateColumn(
+  columns: ColumnAnalysis[],
+): string | undefined {
+  const candidates =
+    columns.filter(
+      (column) =>
+        column.kind ===
+          'date' &&
+        column.date &&
+        column.date.count >=
+          2 &&
+        column.date.uniqueCount >=
+          2,
+    );
+
+  if (
+    candidates.length === 0
+  ) {
+    return undefined;
+  }
+
+  return [
+    ...candidates,
+  ].sort(
+    (a, b) => {
+      const spanA =
+        a.date?.spanDays ??
+        0;
+
+      const spanB =
+        b.date?.spanDays ??
+        0;
+
+      if (
+        spanA !== spanB
+      ) {
+        return (
+          spanB -
+          spanA
+        );
+      }
+
+      return (
+        (b.date?.count ??
+          0) -
+        (a.date?.count ??
+          0)
+      );
+    },
+  )[0].name;
+}
+
+/* -------------------------------------------------------------------------- */
+/* MEASURE / DIMENSION SELECTION                                              */
+/* -------------------------------------------------------------------------- */
+
+function chooseMeasures(
+  columns: ColumnAnalysis[],
+): string[] {
+  return columns
+    .filter(
+      (column) =>
+        column.kind ===
+          'numeric' &&
+        column.uniqueCount > 1 &&
+        !column.isLikelyIdentifier,
+    )
+    .sort(
+      (a, b) => {
+        /*
+         * Prefer columns with fewer invalid/missing values.
+         */
+        const qualityA =
+          100 -
+          a.missingPercentage -
+          percentage(
+            a.invalidCount,
+            Math.max(
+              1,
+              a.numeric?.count ??
+                0,
+            ),
+          );
+
+        const qualityB =
+          100 -
+          b.missingPercentage -
+          percentage(
+            b.invalidCount,
+            Math.max(
+              1,
+              b.numeric?.count ??
+                0,
+            ),
+          );
+
+        return (
+          qualityB -
+          qualityA
+        );
+      },
+    )
+    .map(
+      (column) =>
+        column.name,
+    );
+}
+
+function chooseDimensions(
+  columns: ColumnAnalysis[],
+): string[] {
+  return columns
+    .filter(
+      (column) =>
+        (
+          column.kind ===
+            'categorical' ||
+          column.kind ===
+            'date'
+        ) &&
+        !column.isLikelyIdentifier,
+    )
+    .sort(
+      (a, b) => {
+        /*
+         * Prefer dimensions with useful,
+         * but not excessive, cardinality.
+         */
+        const score = (
+          column: ColumnAnalysis,
+        ) => {
+          const unique =
+            column.uniqueCount;
+
+          if (
+            unique >= 2 &&
+            unique <= 12
+          ) {
+            return 100;
+          }
+
+          if (
+            unique <= 30
+          ) {
+            return 80;
+          }
+
+          if (
+            unique <= 100
+          ) {
+            return 50;
+          }
+
+          return 10;
+        };
+
+        return (
+          score(b) -
+          score(a)
+        );
+      },
+    )
+    .map(
+      (column) =>
+        column.name,
+    );
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1730,13 +2505,10 @@ function calculateQualityIssues(
       issues.push({
         type:
           'missing-values',
-
         column:
           column.name,
-
         severity:
           'high',
-
         message:
           `${column.name} is missing ${column.missingPercentage}% of its values.`,
       });
@@ -1747,13 +2519,10 @@ function calculateQualityIssues(
       issues.push({
         type:
           'missing-values',
-
         column:
           column.name,
-
         severity:
           'medium',
-
         message:
           `${column.name} has ${column.missingPercentage}% missing values.`,
       });
@@ -1763,112 +2532,85 @@ function calculateQualityIssues(
       issues.push({
         type:
           'missing-values',
-
         column:
           column.name,
-
         severity:
           'low',
-
         message:
           `${column.name} contains ${column.missingPercentage}% missing values.`,
       });
     }
 
     /*
-     * Invalid values in numeric columns.
+     * Invalid numeric/date values.
      */
     if (
-      column.kind ===
-      'numeric'
+      column.invalidCount > 0
     ) {
-      const values =
-        rows.map(
-          (row) =>
-            row[column.name],
+      const invalidPercentage =
+        round(
+          percentage(
+            column.invalidCount,
+            rows.length,
+          ),
+          2,
         );
 
-      const invalidCount =
-        countInvalidNumericValues(
-          values,
-        );
-
-      if (
-        invalidCount > 0
-      ) {
-        const invalidPercentage =
-          round(
-            percentage(
-              invalidCount,
-              values.length,
-            ),
-            2,
-          );
-
-        issues.push({
-          type:
-            'invalid-values',
-
-          column:
-            column.name,
-
-          severity:
-            invalidPercentage >=
-            10
-              ? 'high'
-              : invalidPercentage >=
-                  3
-                ? 'medium'
-                : 'low',
-
-          message:
-            `${column.name} contains ${invalidCount} invalid numeric values (${invalidPercentage}% of the column).`,
-        });
-      }
+      issues.push({
+        type:
+          'invalid-values',
+        column:
+          column.name,
+        severity:
+          invalidPercentage >=
+          10
+            ? 'high'
+            : invalidPercentage >=
+                3
+              ? 'medium'
+              : 'low',
+        message:
+          `${column.name} contains ${column.invalidCount} invalid values (${invalidPercentage}% of the column).`,
+      });
     }
 
     /*
-     * Constant column.
+     * Constant columns.
      */
     if (
       column.uniqueCount ===
         1 &&
-      column.missingCount === 0
+      column.missingCount ===
+        0
     ) {
       issues.push({
         type:
           'constant-column',
-
         column:
           column.name,
-
         severity:
           'low',
-
         message:
           `${column.name} contains only one unique value and provides little analytical variation.`,
       });
     }
 
     /*
-     * High-cardinality categorical column.
+     * High-cardinality dimensions.
      */
     if (
-      column.uniqueCount >
-        100 &&
       column.kind ===
-        'categorical'
+        'categorical' &&
+      column.uniqueCount >
+        100
     ) {
       issues.push({
         type:
           'high-cardinality',
-
         column:
           column.name,
-
         severity:
           'medium',
-
         message:
           `${column.name} has high cardinality with ${column.uniqueCount} unique values.`,
       });
@@ -1884,13 +2626,10 @@ function calculateQualityIssues(
       issues.push({
         type:
           'mostly-text',
-
         column:
           column.name,
-
         severity:
           'low',
-
         message:
           `${column.name} appears to contain free-form text rather than structured analytical values.`,
       });
@@ -1912,7 +2651,6 @@ function calculateQualityIssues(
     issues.push({
       type:
         'duplicate-rows',
-
       severity:
         duplicatePercentage >=
         10
@@ -1921,7 +2659,6 @@ function calculateQualityIssues(
               3
             ? 'medium'
             : 'low',
-
       message:
         `${duplicateRows} duplicate rows were detected (${round(
           duplicatePercentage,
@@ -1946,59 +2683,92 @@ function generateChartCandidates(
   const candidates: ChartCandidate[] =
     [];
 
+  const usableCategoricalColumns =
+    categoricalColumns.filter(
+      (columnName) => {
+        const column =
+          columns.find(
+            (item) =>
+              item.name ===
+              columnName,
+          );
+
+        return (
+          column !==
+            undefined &&
+          !column.isLikelyIdentifier &&
+          column.uniqueCount >=
+            2
+        );
+      },
+    );
+
+  const usableMeasures =
+    numericColumns.filter(
+      (columnName) => {
+        const column =
+          columns.find(
+            (item) =>
+              item.name ===
+              columnName,
+          );
+
+        return (
+          column !==
+            undefined &&
+          !column.isLikelyIdentifier &&
+          column.uniqueCount >
+            1
+        );
+      },
+    );
+
   /*
    * Time series.
    */
   if (
     dateColumns.length > 0 &&
-    numericColumns.length > 0
+    usableMeasures.length > 0
   ) {
     const dateColumn =
+      choosePrimaryDateColumn(
+        columns,
+      ) ??
       dateColumns[0];
 
     candidates.push({
       type: 'line',
-
       title:
         'Trend over time',
-
       dimension:
         dateColumn,
-
       measures:
-        numericColumns.slice(
+        usableMeasures.slice(
           0,
           3,
         ),
-
       reason:
-        'A date dimension and numeric measures are available, making a time-series visualization appropriate.',
-
+        'A valid temporal dimension and numeric measures are available. The trend is grouped into appropriate time periods before visualization.',
       priority: 100,
     });
 
     if (
-      numericColumns.length >=
+      usableMeasures.length >=
       2
     ) {
       candidates.push({
         type: 'area',
-
         title:
           'Measure comparison over time',
-
         dimension:
           dateColumn,
-
         measures:
-          numericColumns.slice(
+          usableMeasures.slice(
             0,
             3,
           ),
-
         reason:
-          'Multiple numeric measures can be compared across the available time dimension.',
-
+          'Multiple numeric measures can be compared across the temporal dimension.',
         priority: 85,
       });
     }
@@ -2008,16 +2778,12 @@ function generateChartCandidates(
    * Category comparison.
    */
   if (
-    categoricalColumns.length >
+    usableCategoricalColumns.length >
       0 &&
-    numericColumns.length > 0
+    usableMeasures.length > 0
   ) {
-    /*
-     * Prefer a low/moderate-cardinality
-     * categorical dimension.
-     */
     const dimension =
-      [...categoricalColumns]
+      [...usableCategoricalColumns]
         .sort(
           (a, b) => {
             const columnA =
@@ -2044,68 +2810,53 @@ function generateChartCandidates(
         )[0];
 
     const measure =
-      numericColumns[0];
+      usableMeasures[0];
 
     if (dimension) {
       candidates.push({
         type: 'bar',
-
         title:
           `${measure} by ${dimension}`,
-
         dimension,
-
         measures: [
           measure,
         ],
-
         reason:
-          'A categorical dimension and numeric measure support category comparison.',
-
+          'A structured categorical dimension and numeric measure support direct category comparison.',
         priority: 90,
       });
 
       candidates.push({
         type:
           'horizontal-bar',
-
         title:
           `${measure} ranking by ${dimension}`,
-
         dimension,
-
         measures: [
           measure,
         ],
-
         reason:
-          'A horizontal ranking is useful when category labels may be long.',
-
+          'A horizontal ranking is useful for comparing category magnitudes, especially when labels are long.',
         priority: 75,
       });
 
       if (
-        numericColumns.length >=
+        usableMeasures.length >=
         2
       ) {
         candidates.push({
           type:
             'grouped-bar',
-
           title:
             `Measure comparison by ${dimension}`,
-
           dimension,
-
           measures:
-            numericColumns.slice(
+            usableMeasures.slice(
               0,
               3,
             ),
-
           reason:
             'Multiple numeric measures can be compared across the same categorical dimension.',
-
           priority: 80,
         });
       }
@@ -2116,114 +2867,26 @@ function generateChartCandidates(
    * Numeric distributions.
    */
   if (
-    numericColumns.length > 0
+    usableMeasures.length > 0
   ) {
     const measure =
-      numericColumns[0];
+      usableMeasures[0];
 
     candidates.push({
       type:
         'histogram',
-
       title:
         `${measure} distribution`,
-
       measures: [
         measure,
       ],
-
       reason:
-        'A numeric measure can be examined for its distribution and concentration.',
-
+        'A numeric measure can be examined for distribution, concentration, and spread.',
       priority: 65,
     });
 
-    /*
-     * Distribution by category.
-     */
-    if (
-      categoricalColumns.length >
-      0
-    ) {
-      const dimension =
-        categoricalColumns.find(
-          (columnName) => {
-            const column =
-              columns.find(
-                (item) =>
-                  item.name ===
-                  columnName,
-              );
-
-            return (
-              column !==
-                undefined &&
-              column.uniqueCount <=
-                50
-            );
-          },
-        );
-
-      if (dimension) {
-        candidates.push({
-          type:
-            'box-plot',
-
-          title:
-            `${measure} distribution by ${dimension}`,
-
-          dimension,
-
-          measures: [
-            measure,
-          ],
-
-          reason:
-            'A numeric measure can be compared across categories using distributions.',
-
-          priority: 60,
-        });
-      }
-    }
-  }
-
-  /*
-   * Numeric relationships.
-   */
-  if (
-    numericColumns.length >=
-    2
-  ) {
-    candidates.push({
-      type:
-        'scatter',
-
-      title:
-        `${numericColumns[0]} vs ${numericColumns[1]}`,
-
-      measures:
-        numericColumns.slice(
-          0,
-          2,
-        ),
-
-      reason:
-        'Two numeric measures can be compared to reveal relationships and potential correlation.',
-
-      priority: 70,
-    });
-  }
-
-  /*
-   * Proportional breakdown.
-   */
-  if (
-    categoricalColumns.length >
-      0 &&
-    numericColumns.length > 0
-  ) {
-    const dimension =
-      categoricalColumns.find(
+    const boxDimension =
+      usableCategoricalColumns.find(
         (columnName) => {
           const column =
             columns.find(
@@ -2236,49 +2899,109 @@ function generateChartCandidates(
             column !==
               undefined &&
             column.uniqueCount <=
+              30
+          );
+        },
+      );
+
+    if (boxDimension) {
+      candidates.push({
+        type:
+          'box-plot',
+        title:
+          `${measure} distribution by ${boxDimension}`,
+        dimension:
+          boxDimension,
+        measures: [
+          measure,
+        ],
+        reason:
+          'A numeric measure can be compared across categories using distribution statistics rather than only averages.',
+        priority: 60,
+      });
+    }
+  }
+
+  /*
+   * Numeric relationships.
+   */
+  if (
+    usableMeasures.length >=
+    2
+  ) {
+    candidates.push({
+      type:
+        'scatter',
+      title:
+        `${usableMeasures[0]} vs ${usableMeasures[1]}`,
+      measures:
+        usableMeasures.slice(
+          0,
+          2,
+        ),
+      reason:
+        'Two numeric measures can be compared to reveal relationships and potential correlation.',
+      priority: 70,
+    });
+  }
+
+  /*
+   * Proportional breakdown.
+   */
+  if (
+    usableCategoricalColumns.length >
+      0 &&
+    usableMeasures.length > 0
+  ) {
+    const dimension =
+      usableCategoricalColumns.find(
+        (columnName) => {
+          const column =
+            columns.find(
+              (item) =>
+                item.name ===
+                columnName,
+            );
+
+          return (
+            column !==
+              undefined &&
+            column.uniqueCount >=
+              2 &&
+            column.uniqueCount <=
               8
           );
         },
       );
 
     const measure =
-      numericColumns[0];
+      usableMeasures[0];
 
     if (dimension) {
       candidates.push({
         type: 'donut',
-
         title:
           `${measure} breakdown`,
-
         dimension,
-
         measures: [
           measure,
         ],
-
         reason:
-          'A low-cardinality categorical dimension can meaningfully show proportional contribution to the numeric measure.',
-
+          'A low-cardinality categorical dimension can meaningfully communicate proportional contribution to a whole.',
         priority: 45,
       });
 
       candidates.push({
         type:
           'treemap',
-
         title:
           `${measure} by ${dimension}`,
-
         dimension,
-
         measures: [
           measure,
         ],
-
         reason:
-          'A treemap can communicate relative magnitude across multiple categories.',
-
+          'A treemap can communicate relative magnitude across several categories.',
         priority: 40,
       });
     }
@@ -2311,7 +3034,6 @@ function determineStatus(
     return {
       status:
         'not-analyzable',
-
       reason:
         'No structured records were found in the uploaded content.',
     };
@@ -2323,7 +3045,6 @@ function determineStatus(
     return {
       status:
         'not-analyzable',
-
       reason:
         'No structured columns could be detected.',
     };
@@ -2341,7 +3062,6 @@ function determineStatus(
     return {
       status:
         'not-analyzable',
-
       reason:
         'The uploaded content appears to consist primarily of free-form text rather than structured analytical data.',
     };
@@ -2357,7 +3077,6 @@ function determineStatus(
     return {
       status:
         'partially-analyzable',
-
       reason:
         'The dataset contains dates but does not contain a numeric measure suitable for quantitative analysis.',
     };
@@ -2372,7 +3091,6 @@ function determineStatus(
     return {
       status:
         'partially-analyzable',
-
       reason:
         'The dataset contains categorical information but no clear numeric measures for quantitative analysis.',
     };
@@ -2461,24 +3179,23 @@ export function analyzeDatasetStructure(
           column.name,
       );
 
+  /*
+   * Only expose useful numeric fields
+   * as measures.
+   */
   const measures =
-    columns
-      .filter(
-        (column) =>
-          column.kind ===
-            'numeric' &&
-          column.uniqueCount >
-            1,
-      )
-      .map(
-        (column) =>
-          column.name,
-      );
+    chooseMeasures(
+      columns,
+    );
 
-  const dimensions = [
-    ...categoricalColumns,
-    ...dateColumns,
-  ];
+  /*
+   * Only expose useful categorical/date
+   * fields as dimensions.
+   */
+  const dimensions =
+    chooseDimensions(
+      columns,
+    );
 
   const duplicateRows =
     countDuplicateRows(
@@ -2492,23 +3209,28 @@ export function analyzeDatasetStructure(
       duplicateRows,
     );
 
+  const primaryDateColumn =
+    choosePrimaryDateColumn(
+      columns,
+    );
+
   const trends =
     calculateTrends(
       actualRows,
-      dateColumns[0],
-      numericColumns,
+      primaryDateColumn,
+      measures,
     );
 
   const correlations =
     calculateCorrelations(
       actualRows,
-      numericColumns,
+      measures,
     );
 
   const chartCandidates =
     generateChartCandidates(
       columns,
-      numericColumns,
+      measures,
       categoricalColumns,
       dateColumns,
     );
@@ -2517,9 +3239,15 @@ export function analyzeDatasetStructure(
     determineStatus(
       actualRows,
       columns,
-      numericColumns,
+      measures,
       categoricalColumns,
       dateColumns,
+    );
+
+  const canAnalyzeTrends =
+    Boolean(
+      primaryDateColumn &&
+        measures.length > 0,
     );
 
   return {
@@ -2561,29 +3289,20 @@ export function analyzeDatasetStructure(
     duplicateRows,
 
     analysisCapabilities: {
-      canAnalyzeTrends:
-        dateColumns.length >
-          0 &&
-        numericColumns.length >
-          0,
+      canAnalyzeTrends,
 
       canAnalyzeDistributions:
-        numericColumns.length >
-        0,
+        measures.length > 0,
 
       canAnalyzeCorrelations:
-        numericColumns.length >=
-        2,
+        measures.length >= 2,
 
       canGenerateCharts:
         chartCandidates.length >
         0,
 
       canGenerateTimeSeries:
-        dateColumns.length >
-          0 &&
-        numericColumns.length >
-          0,
+        canAnalyzeTrends,
     },
 
     chartCandidates,
@@ -2625,11 +3344,20 @@ export function createAnalysisContext(
             uniqueCount:
               column.uniqueCount,
 
+            uniquePercentage:
+              column.uniquePercentage,
+
             missingCount:
               column.missingCount,
 
             missingPercentage:
               column.missingPercentage,
+
+            invalidCount:
+              column.invalidCount,
+
+            isLikelyIdentifier:
+              column.isLikelyIdentifier,
 
             sampleValues:
               column.sampleValues,
@@ -2641,6 +3369,16 @@ export function createAnalysisContext(
                       column
                         .numeric
                         .count,
+
+                    missing:
+                      column
+                        .numeric
+                        .missing,
+
+                    invalid:
+                      column
+                        .numeric
+                        .invalid,
 
                     min:
                       column
@@ -2680,13 +3418,17 @@ export function createAnalysisContext(
                 : undefined,
 
             categorical:
-              column
-                .categorical
+              column.categorical
                 ? {
                     count:
                       column
                         .categorical
                         .count,
+
+                    missing:
+                      column
+                        .categorical
+                        .missing,
 
                     uniqueCount:
                       column
@@ -2707,6 +3449,16 @@ export function createAnalysisContext(
                       column
                         .date
                         .count,
+
+                    missing:
+                      column
+                        .date
+                        .missing,
+
+                    invalid:
+                      column
+                        .date
+                        .invalid,
 
                     min:
                       column
