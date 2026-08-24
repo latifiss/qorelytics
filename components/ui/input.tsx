@@ -105,13 +105,6 @@ const Input: React.FC<InputProps> = ({
 
   const isActive = text.trim() || selectedFile;
 
-  const getArrowColor = () => {
-    if (isActive) {
-      return isDark ? '#ffffff' : '#000000';
-    }
-    return isDark ? '#62737b' : '#9fa5ba';
-  };
-
   const getButtonBg = () => {
     if (isActive) {
       return 'bg-neutral-900 dark:bg-white hover:opacity-90';
@@ -192,7 +185,12 @@ const Input: React.FC<InputProps> = ({
               className="p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
               aria-label="Attach file"
             >
-              <ScanIcon size={24} className="text-neutral-600 dark:text-neutral-400" />
+              <div className="block dark:hidden">
+                <ScanIcon size={24} color="#525252" />
+              </div>
+              <div className="hidden dark:block">
+                <ScanIcon size={24} color="#FFFFFF" />
+              </div>
             </button>
 
             <div className="flex items-center gap-1">
@@ -225,10 +223,20 @@ const Input: React.FC<InputProps> = ({
               getButtonBg()
             )}
           >
-            <ArrowUpIcon 
-              size={24} 
-              color={getArrowColor()}
-            />
+            {/* Light mode */}
+            <div className="block dark:hidden">
+              <ArrowUpIcon 
+                size={24} 
+                color={isActive ? "#ffffff" : "#9fa5ba"}
+              />
+            </div>
+            {/* Dark mode */}
+            <div className="hidden dark:block">
+              <ArrowUpIcon 
+                size={24} 
+                color={isActive ? "#000000" : "#62737b"}
+              />
+            </div>
           </button>
         </div>
       </div>
