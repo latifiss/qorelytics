@@ -188,14 +188,6 @@ function isObject(
   );
 }
 
-/**
- * IMPORTANT:
- *
- * The actual parsed rows are now passed directly into the analyzer.
- *
- * DatasetProfile is metadata/profile information.
- * It should not be responsible for carrying the entire dataset.
- */
 function toRows(
   rows: Record<string, unknown>[],
 ): DataRow[] {
@@ -212,15 +204,10 @@ function getProfileColumns(
       unknown
     >;
 
-  const possibleColumns = [
-    value.columns,
-  ];
+  const candidate =
+    value.columns;
 
-  for (const candidate of possibleColumns) {
-    if (!Array.isArray(candidate)) {
-      continue;
-    }
-
+  if (Array.isArray(candidate)) {
     const names = candidate
       .map((column) => {
         if (typeof column === 'string') {
@@ -274,9 +261,7 @@ function normalizeString(
     return value.toISOString();
   }
 
-  if (
-    typeof value === 'object'
-  ) {
+  if (typeof value === 'object') {
     try {
       return JSON.stringify(value);
     } catch {
@@ -315,6 +300,18 @@ function isMissing(
   return false;
 }
 
+/**
+ * Convert a value to a number without treating arbitrary values as numbers.
+ *
+ * Supports common formatted numeric values:
+ *
+ *   "$1,200"
+ *   "€1,200.50"
+ *   "25%"
+ *   "1,000"
+ *
+ * Does NOT treat arbitrary date strings as numbers.
+ */
 function toNumber(
   value: unknown,
 ): number | null {
@@ -328,21 +325,44 @@ function toNumber(
     return null;
   }
 
-  const normalized = value
-    .replace(
-      /[$€£¥₹,%]/g,
-      '',
-    )
-    .replace(/,/g, '')
-    .trim();
+  const trimmed =
+    value.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const normalized =
+    trimmed
+      .replace(
+        /[$€£¥₹,%]/g,
+        '',
+      )
+      .replace(/,/g, '')
+      .trim();
 
   if (!normalized) {
     return null;
   }
 
-  const number = Number(
-    normalized,
-  );
+  /**
+   * Prevent values such as "2025-01-01" from being treated
+   * as numeric data after parsing.
+   */
+  if (
+    /[a-z]/i.test(
+      normalized,
+    ) ||
+    normalized.includes('-') &&
+      /^\d{4}-\d{1,2}-\d{1,2}/.test(
+        normalized,
+      )
+  ) {
+    return null;
+  }
+
+  const number =
+    Number(normalized);
 
   return Number.isFinite(number)
     ? number
@@ -373,6 +393,16 @@ function isBooleanLike(
   ].includes(normalized);
 }
 
+/* -------------------------------------------------------------------------- */
+/* DATE PARSING                                                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Parse only values that reasonably look like dates.
+ *
+ * JavaScript's Date parser is intentionally not used blindly because
+ * it accepts many ambiguous values that are not actually dates.
+ */
 function parseDate(
   value: unknown,
 ): Date | null {
@@ -384,14 +414,60 @@ function parseDate(
       : value;
   }
 
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized =
+    value.trim();
+
+  if (!normalized) {
+    return null;
+  }
+
+  /*
+   * ISO-like date:
+   *
+   * 2025-01-15
+   * 2025-01-15T10:30:00Z
+   */
+  const isoDatePattern =
+    /^\d{4}-\d{1,2}-\d{1,2}(?:[T\s].*)?$/;
+
+  /*
+   * Slash date:
+   *
+   * 2025/01/15
+   * 01/15/2025
+   */
+  const slashDatePattern =
+    /^(?:\d{4}\/\d{1,2}\/\d{1,2}|\d{1,2}\/\d{1,2}\/\d{4})(?:\s.*)?$/;
+
+  /*
+   * Common textual date:
+   *
+   * Jan 15, 2025
+   * January 15, 2025
+   */
+  const textualDatePattern =
+    /^(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{1,2}(?:,\s*|\s+)\d{4}$/i;
+
   if (
-    typeof value !== 'string' &&
-    typeof value !== 'number'
+    !isoDatePattern.test(
+      normalized,
+    ) &&
+    !slashDatePattern.test(
+      normalized,
+    ) &&
+    !textualDatePattern.test(
+      normalized,
+    )
   ) {
     return null;
   }
 
-  const date = new Date(value);
+  const date =
+    new Date(normalized);
 
   if (
     Number.isNaN(
@@ -456,6 +532,21 @@ function looksLikeNumericColumn(
   );
 }
 
+/**
+ * Determine the semantic type of a column.
+ *
+ * IMPORTANT:
+ *
+ * Numeric detection intentionally happens before date detection.
+ *
+ * This prevents values such as:
+ *
+ *   202401
+ *   202402
+ *   202403
+ *
+ * or numeric measures from accidentally being classified as dates.
+ */
 function determineColumnKind(
   values: unknown[],
 ): ColumnKind {
@@ -469,6 +560,9 @@ function determineColumnKind(
     return 'unknown';
   }
 
+  /*
+   * Boolean first because booleans should never become categorical.
+   */
   if (
     validValues.every(
       isBooleanLike,
@@ -478,7 +572,18 @@ function determineColumnKind(
   }
 
   /*
-   * Dates before text because dates are commonly strings.
+   * Numeric before date.
+   */
+  if (
+    looksLikeNumericColumn(
+      validValues,
+    )
+  ) {
+    return 'numeric';
+  }
+
+  /*
+   * Strict date detection.
    */
   if (
     looksLikeDateColumn(
@@ -488,14 +593,6 @@ function determineColumnKind(
     return 'date';
   }
 
-  if (
-    looksLikeNumericColumn(
-      validValues,
-    )
-  ) {
-    return 'numeric';
-  }
-
   const uniqueValues =
     new Set(
       validValues.map(
@@ -503,6 +600,11 @@ function determineColumnKind(
       ),
     );
 
+  /*
+   * A categorical column should have repeated values.
+   *
+   * High-cardinality free-form values are treated as text.
+   */
   if (
     uniqueValues.size <=
     Math.min(
@@ -577,7 +679,9 @@ function standardDeviation(
       0,
     ) / values.length;
 
-  return Math.sqrt(variance);
+  return Math.sqrt(
+    variance,
+  );
 }
 
 function percentage(
@@ -621,6 +725,10 @@ function analyzeNumericColumn(
 ): NumericStats {
   const numericValues =
     values
+      .filter(
+        (value) =>
+          !isMissing(value),
+      )
       .map(toNumber)
       .filter(
         (
@@ -630,8 +738,10 @@ function analyzeNumericColumn(
       );
 
   const missing =
-    values.length -
-    numericValues.length;
+    values.filter(
+      (value) =>
+        isMissing(value),
+    ).length;
 
   if (
     numericValues.length ===
@@ -661,28 +771,61 @@ function analyzeNumericColumn(
   return {
     count:
       numericValues.length,
+
     missing,
+
     min: Math.min(
       ...numericValues,
     ),
+
     max: Math.max(
       ...numericValues,
     ),
+
     mean:
       sum /
       numericValues.length,
+
     median:
       median(numericValues),
+
     sum,
+
     standardDeviation:
       standardDeviation(
         numericValues,
       ),
+
     uniqueCount:
       new Set(
         numericValues,
       ).size,
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/* INVALID NUMERIC VALUES                                                     */
+/* -------------------------------------------------------------------------- */
+
+function countInvalidNumericValues(
+  values: unknown[],
+): number {
+  let invalid = 0;
+
+  for (const value of values) {
+    if (isMissing(value)) {
+      continue;
+    }
+
+    if (
+      toNumber(value) ===
+      null
+    ) {
+      invalid++;
+    }
+  }
+
+  return invalid;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -739,11 +882,14 @@ function analyzeCategoricalColumn(
   return {
     count:
       validValues.length,
+
     missing:
       values.length -
       validValues.length,
+
     uniqueCount:
       counts.size,
+
     topValues,
   };
 }
@@ -755,12 +901,14 @@ function analyzeCategoricalColumn(
 function analyzeDateColumn(
   values: unknown[],
 ): DateStats {
+  const nonMissing =
+    values.filter(
+      (value) =>
+        !isMissing(value),
+    );
+
   const dates =
-    values
-      .filter(
-        (value) =>
-          !isMissing(value),
-      )
+    nonMissing
       .map(parseDate)
       .filter(
         (
@@ -769,10 +917,17 @@ function analyzeDateColumn(
           date !== null,
       );
 
+  const missing =
+    values.filter(
+      (value) =>
+        isMissing(value),
+    ).length;
+
   if (dates.length === 0) {
     return {
       count: 0,
-      missing: values.length,
+      missing:
+        values.length,
       min: null,
       max: null,
       spanDays: null,
@@ -814,20 +969,27 @@ function analyzeDateColumn(
     );
 
   return {
-    count: dates.length,
-    missing:
-      values.length -
+    count:
       dates.length,
+
+    missing:
+      missing +
+      (nonMissing.length -
+        dates.length),
+
     min: new Date(
       minTime,
     ).toISOString(),
+
     max: new Date(
       maxTime,
     ).toISOString(),
+
     spanDays: round(
       spanDays,
       2,
     ),
+
     uniqueCount:
       uniqueDates.size,
   };
@@ -881,11 +1043,16 @@ function analyzeColumn(
   const result: ColumnAnalysis =
     {
       name,
+
       kind,
+
       nullable:
         missingCount > 0,
+
       uniqueCount,
+
       missingCount,
+
       missingPercentage:
         round(
           percentage(
@@ -894,6 +1061,7 @@ function analyzeColumn(
           ),
           2,
         ),
+
       sampleValues,
     };
 
@@ -915,7 +1083,9 @@ function analyzeColumn(
       );
   }
 
-  if (kind === 'date') {
+  if (
+    kind === 'date'
+  ) {
     result.date =
       analyzeDateColumn(
         values,
@@ -1179,16 +1349,20 @@ function calculateCorrelations(
 
       results.push({
         columnA,
+
         columnB,
+
         correlation:
           round(
             correlation,
             4,
           ),
+
         strength:
           correlationStrength(
             correlation,
           ),
+
         direction:
           correlation >= 0
             ? 'positive'
@@ -1393,13 +1567,17 @@ function calculateTrends(
 
     trends.push({
       column,
+
       direction,
+
       changePercentage,
+
       firstValue:
         round(
           firstValue,
           4,
         ),
+
       lastValue:
         round(
           lastValue,
@@ -1431,9 +1609,13 @@ function calculateQualityIssues(
       issues.push({
         type:
           'missing-values',
+
         column:
           column.name,
-        severity: 'high',
+
+        severity:
+          'high',
+
         message:
           `${column.name} is missing ${column.missingPercentage}% of its values.`,
       });
@@ -1444,9 +1626,13 @@ function calculateQualityIssues(
       issues.push({
         type:
           'missing-values',
+
         column:
           column.name,
-        severity: 'medium',
+
+        severity:
+          'medium',
+
         message:
           `${column.name} has ${column.missingPercentage}% missing values.`,
       });
@@ -1456,12 +1642,68 @@ function calculateQualityIssues(
       issues.push({
         type:
           'missing-values',
+
         column:
           column.name,
-        severity: 'low',
+
+        severity:
+          'low',
+
         message:
           `${column.name} contains ${column.missingPercentage}% missing values.`,
       });
+    }
+
+    /*
+     * Detect invalid values in numeric columns.
+     */
+    if (
+      column.kind ===
+      'numeric'
+    ) {
+      const values =
+        rows.map(
+          (row) =>
+            row[column.name],
+        );
+
+      const invalidCount =
+        countInvalidNumericValues(
+          values,
+        );
+
+      if (
+        invalidCount > 0
+      ) {
+        const invalidPercentage =
+          round(
+            percentage(
+              invalidCount,
+              values.length,
+            ),
+            2,
+          );
+
+        issues.push({
+          type:
+            'invalid-values',
+
+          column:
+            column.name,
+
+          severity:
+            invalidPercentage >=
+            10
+              ? 'high'
+              : invalidPercentage >=
+                  3
+                ? 'medium'
+                : 'low',
+
+          message:
+            `${column.name} contains ${invalidCount} invalid numeric values (${invalidPercentage}% of the column).`,
+        });
+      }
     }
 
     if (
@@ -1472,9 +1714,13 @@ function calculateQualityIssues(
       issues.push({
         type:
           'constant-column',
+
         column:
           column.name,
-        severity: 'low',
+
+        severity:
+          'low',
+
         message:
           `${column.name} contains only one unique value and provides little analytical variation.`,
       });
@@ -1489,9 +1735,13 @@ function calculateQualityIssues(
       issues.push({
         type:
           'high-cardinality',
+
         column:
           column.name,
-        severity: 'medium',
+
+        severity:
+          'medium',
+
         message:
           `${column.name} has high cardinality with ${column.uniqueCount} unique values.`,
       });
@@ -1503,9 +1753,13 @@ function calculateQualityIssues(
       issues.push({
         type:
           'mostly-text',
+
         column:
           column.name,
-        severity: 'low',
+
+        severity:
+          'low',
+
         message:
           `${column.name} appears to contain free-form text rather than structured analytical values.`,
       });
@@ -1524,6 +1778,7 @@ function calculateQualityIssues(
     issues.push({
       type:
         'duplicate-rows',
+
       severity:
         duplicatePercentage >=
         10
@@ -1532,6 +1787,7 @@ function calculateQualityIssues(
               3
             ? 'medium'
             : 'low',
+
       message:
         `${duplicateRows} duplicate rows were detected (${round(
           duplicatePercentage,
@@ -1565,17 +1821,22 @@ function generateChartCandidates(
 
     candidates.push({
       type: 'line',
+
       title:
         'Trend over time',
+
       dimension:
         dateColumn,
+
       measures:
         numericColumns.slice(
           0,
           3,
         ),
+
       reason:
         'A date dimension and numeric measures are available, making a time-series visualization appropriate.',
+
       priority: 100,
     });
 
@@ -1585,17 +1846,22 @@ function generateChartCandidates(
     ) {
       candidates.push({
         type: 'area',
+
         title:
           'Measure comparison over time',
+
         dimension:
           dateColumn,
+
         measures:
           numericColumns.slice(
             0,
             3,
           ),
+
         reason:
           'Multiple numeric measures can be compared across the available time dimension.',
+
         priority: 85,
       });
     }
@@ -1606,52 +1872,98 @@ function generateChartCandidates(
       0 &&
     numericColumns.length > 0
   ) {
+    /*
+     * Prefer a low/moderate-cardinality categorical dimension.
+     *
+     * Extremely high-cardinality dimensions produce poor charts.
+     */
     const dimension =
-      categoricalColumns[0];
+      [...categoricalColumns]
+        .sort((a, b) => {
+          const columnA =
+            columns.find(
+              (column) =>
+                column.name ===
+                a,
+            );
+
+          const columnB =
+            columns.find(
+              (column) =>
+                column.name ===
+                b,
+            );
+
+          return (
+            (columnA?.uniqueCount ??
+              Infinity) -
+            (columnB?.uniqueCount ??
+              Infinity)
+          );
+        })[0];
 
     const measure =
       numericColumns[0];
 
-    candidates.push({
-      type: 'bar',
-      title:
-        `${measure} by ${dimension}`,
-      dimension,
-      measures: [measure],
-      reason:
-        'A categorical dimension and numeric measure support category comparison.',
-      priority: 90,
-    });
-
-    candidates.push({
-      type: 'horizontal-bar',
-      title:
-        `${measure} ranking by ${dimension}`,
-      dimension,
-      measures: [measure],
-      reason:
-        'A horizontal ranking is useful when category labels may be long.',
-      priority: 75,
-    });
-
-    if (
-      numericColumns.length >=
-      2
-    ) {
+    if (dimension) {
       candidates.push({
-        type: 'grouped-bar',
+        type: 'bar',
+
         title:
-          `Measure comparison by ${dimension}`,
+          `${measure} by ${dimension}`,
+
         dimension,
-        measures:
-          numericColumns.slice(
-            0,
-            3,
-          ),
+
+        measures: [measure],
+
         reason:
-          'Multiple numeric measures can be compared across the same categorical dimension.',
-        priority: 80,
+          'A categorical dimension and numeric measure support category comparison.',
+
+        priority: 90,
       });
+
+      candidates.push({
+        type:
+          'horizontal-bar',
+
+        title:
+          `${measure} ranking by ${dimension}`,
+
+        dimension,
+
+        measures: [measure],
+
+        reason:
+          'A horizontal ranking is useful when category labels may be long.',
+
+        priority: 75,
+      });
+
+      if (
+        numericColumns.length >=
+        2
+      ) {
+        candidates.push({
+          type:
+            'grouped-bar',
+
+          title:
+            `Measure comparison by ${dimension}`,
+
+          dimension,
+
+          measures:
+            numericColumns.slice(
+              0,
+              3,
+            ),
+
+          reason:
+            'Multiple numeric measures can be compared across the same categorical dimension.',
+
+          priority: 80,
+        });
+      }
     }
   }
 
@@ -1663,11 +1975,15 @@ function generateChartCandidates(
 
     candidates.push({
       type: 'histogram',
+
       title:
         `${measure} distribution`,
+
       measures: [measure],
+
       reason:
         'A numeric measure can be examined for its distribution and concentration.',
+
       priority: 65,
     });
 
@@ -1675,17 +1991,43 @@ function generateChartCandidates(
       categoricalColumns.length >
       0
     ) {
-      candidates.push({
-        type: 'box-plot',
-        title:
-          `${measure} distribution by ${categoricalColumns[0]}`,
-        dimension:
-          categoricalColumns[0],
-        measures: [measure],
-        reason:
-          'A numeric measure can be compared across categories using distributions.',
-        priority: 60,
-      });
+      const dimension =
+        categoricalColumns.find(
+          (columnName) => {
+            const column =
+              columns.find(
+                (item) =>
+                  item.name ===
+                  columnName,
+              );
+
+            return (
+              column !==
+                undefined &&
+              column.uniqueCount <=
+                50
+            );
+          },
+        );
+
+      if (dimension) {
+        candidates.push({
+          type:
+            'box-plot',
+
+          title:
+            `${measure} distribution by ${dimension}`,
+
+          dimension,
+
+          measures: [measure],
+
+          reason:
+            'A numeric measure can be compared across categories using distributions.',
+
+          priority: 60,
+        });
+      }
     }
   }
 
@@ -1695,15 +2037,19 @@ function generateChartCandidates(
   ) {
     candidates.push({
       type: 'scatter',
+
       title:
         `${numericColumns[0]} vs ${numericColumns[1]}`,
+
       measures:
         numericColumns.slice(
           0,
           2,
         ),
+
       reason:
         'Two numeric measures can be compared to reveal relationships and potential correlation.',
+
       priority: 70,
     });
   }
@@ -1714,32 +2060,62 @@ function generateChartCandidates(
     numericColumns.length > 0
   ) {
     const dimension =
-      categoricalColumns[0];
+      categoricalColumns.find(
+        (columnName) => {
+          const column =
+            columns.find(
+              (item) =>
+                item.name ===
+                columnName,
+            );
+
+          return (
+            column !==
+              undefined &&
+            column.uniqueCount <=
+              8
+          );
+        },
+      );
 
     const measure =
       numericColumns[0];
 
-    candidates.push({
-      type: 'donut',
-      title:
-        `${measure} breakdown`,
-      dimension,
-      measures: [measure],
-      reason:
-        'The categorical dimension can be used to show proportional contribution to the numeric measure.',
-      priority: 45,
-    });
+    if (dimension) {
+      candidates.push({
+        type: 'donut',
 
-    candidates.push({
-      type: 'treemap',
-      title:
-        `${measure} by ${dimension}`,
-      dimension,
-      measures: [measure],
-      reason:
-        'A treemap can communicate relative magnitude across multiple categories.',
-      priority: 40,
-    });
+        title:
+          `${measure} breakdown`,
+
+        dimension,
+
+        measures: [measure],
+
+        reason:
+          'A low-cardinality categorical dimension can meaningfully show proportional contribution to the numeric measure.',
+
+        priority: 45,
+      });
+    }
+
+    if (dimension) {
+      candidates.push({
+        type: 'treemap',
+
+        title:
+          `${measure} by ${dimension}`,
+
+        dimension,
+
+        measures: [measure],
+
+        reason:
+          'A treemap can communicate relative magnitude across multiple categories.',
+
+        priority: 40,
+      });
+    }
   }
 
   return candidates.sort(
@@ -1769,6 +2145,7 @@ function determineStatus(
     return {
       status:
         'not-analyzable',
+
       reason:
         'No structured records were found in the uploaded content.',
     };
@@ -1780,6 +2157,7 @@ function determineStatus(
     return {
       status:
         'not-analyzable',
+
       reason:
         'No structured columns could be detected.',
     };
@@ -1797,6 +2175,7 @@ function determineStatus(
     return {
       status:
         'not-analyzable',
+
       reason:
         'The uploaded content appears to consist primarily of free-form text rather than structured analytical data.',
     };
@@ -1812,6 +2191,7 @@ function determineStatus(
     return {
       status:
         'partially-analyzable',
+
       reason:
         'The dataset contains dates but does not contain a numeric measure suitable for quantitative analysis.',
     };
@@ -1826,6 +2206,7 @@ function determineStatus(
     return {
       status:
         'partially-analyzable',
+
       reason:
         'The dataset contains categorical information but no clear numeric measures for quantitative analysis.',
     };
@@ -1840,15 +2221,6 @@ function determineStatus(
 /* MAIN ANALYZER                                                              */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Analyze the actual parsed dataset.
- *
- * IMPORTANT:
- * `rows` is intentionally separate from DatasetProfile.
- *
- * DatasetProfile contains metadata and a sample.
- * `rows` contains the complete actual dataset.
- */
 export function analyzeDatasetStructure(
   profile: DatasetProfile,
   rows: Record<
