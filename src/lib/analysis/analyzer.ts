@@ -1420,114 +1420,192 @@ function calculateCorrelations(
 
 function calculateTrends(
   rows: DataRow[],
-  dateColumn:
-    | string
-    | undefined,
+  dateColumn: string | undefined,
   numericColumns: string[],
 ): TrendAnalysis[] {
-  if (!dateColumn) {
+  if (!dateColumn || numericColumns.length === 0) {
     return [];
   }
 
-  const records: Array<{
-    date: Date;
-    values: Record<
-      string,
-      number
-    >;
-  }> = [];
+  /**
+   * Group rows by calendar date.
+   *
+   * This is important because a dataset can contain many rows
+   * for the same date:
+   *
+   * 2025-01-01 -> 500 rows
+   * 2025-01-02 -> 500 rows
+   * 2025-01-03 -> 500 rows
+   *
+   * We want each date to contribute one observation to the
+   * time-series trend rather than letting row frequency
+   * influence the result.
+   */
+  const groupedByDate = new Map<
+    string,
+    Map<string, number[]>
+  >();
 
   for (const row of rows) {
-    const date =
-      parseDate(
-        row[dateColumn],
-      );
+    const date = parseDate(row[dateColumn]);
 
     if (!date) {
       continue;
     }
 
-    const values: Record<
-      string,
-      number
-    > = {};
+    /**
+     * Normalize to calendar date.
+     *
+     * This means:
+     *
+     * 2025-01-01T08:00:00
+     * 2025-01-01T14:00:00
+     *
+     * are treated as the same time period.
+     */
+    const dateKey = date
+      .toISOString()
+      .split('T')[0];
 
-    for (const column of numericColumns) {
-      const value =
-        toNumber(
-          row[column],
-        );
+    let dateValues =
+      groupedByDate.get(dateKey);
 
-      if (
-        value !== null
-      ) {
-        values[column] =
-          value;
-      }
+    if (!dateValues) {
+      dateValues = new Map<
+        string,
+        number[]
+      >();
+
+      groupedByDate.set(
+        dateKey,
+        dateValues,
+      );
     }
 
-    if (
-      Object.keys(
+    for (const column of numericColumns) {
+      const value = toNumber(
+        row[column],
+      );
+
+      if (value === null) {
+        continue;
+      }
+
+      const values =
+        dateValues.get(column) ?? [];
+
+      values.push(value);
+
+      dateValues.set(
+        column,
         values,
-      ).length > 0
-    ) {
-      records.push({
-        date,
-        values,
-      });
+      );
     }
   }
 
-  records.sort(
-    (a, b) =>
-      a.date.getTime() -
-      b.date.getTime(),
-  );
+  /**
+   * Convert grouped observations into one value per
+   * date and numeric measure.
+   *
+   * Example:
+   *
+   * Date       Revenue rows       Daily average
+   * ------------------------------------------------
+   * Jan 1      100, 120, 110       110
+   * Jan 2      130, 140, 150       140
+   * Jan 3      160, 170, 180       170
+   */
+  const timePeriods = Array.from(
+    groupedByDate.entries(),
+  )
+    .map(
+      ([dateKey, columnValues]) => {
+        const values: Record<
+          string,
+          number
+        > = {};
 
-  if (
-    records.length < 2
-  ) {
+        for (const column of numericColumns) {
+          const columnValuesForDate =
+            columnValues.get(column);
+
+          if (
+            !columnValuesForDate ||
+            columnValuesForDate.length === 0
+          ) {
+            continue;
+          }
+
+          const sum =
+            columnValuesForDate.reduce(
+              (total, value) =>
+                total + value,
+              0,
+            );
+
+          values[column] =
+            sum /
+            columnValuesForDate.length;
+        }
+
+        return {
+          date: new Date(
+            `${dateKey}T00:00:00Z`,
+          ),
+          values,
+        };
+      },
+    )
+    .filter(
+      (period) =>
+        Object.keys(
+          period.values,
+        ).length > 0,
+    )
+    .sort(
+      (a, b) =>
+        a.date.getTime() -
+        b.date.getTime(),
+    );
+
+  if (timePeriods.length < 2) {
     return [];
   }
 
-  const trends: TrendAnalysis[] =
-    [];
+  const trends: TrendAnalysis[] = [];
 
   for (const column of numericColumns) {
-    const values =
-      records
-        .map(
-          (record) =>
-            record.values[
-              column
-            ],
-        )
-        .filter(
-          (
-            value,
-          ): value is number =>
-            value !==
-            undefined,
-        );
+    /**
+     * Only keep time periods where this particular
+     * measure actually has a value.
+     */
+    const values = timePeriods
+      .map(
+        (period) =>
+          period.values[column],
+      )
+      .filter(
+        (
+          value,
+        ): value is number =>
+          value !== undefined &&
+          Number.isFinite(value),
+      );
 
-    if (
-      values.length < 2
-    ) {
+    if (values.length < 2) {
       continue;
     }
 
-    /*
-     * Compare the average of the first 10%
-     * against the average of the last 10%.
+    /**
+     * Compare the beginning and end of the time series.
+     *
+     * We use at least one observation and up to 10%
+     * of the available time periods.
      */
-    const windowSize =
-      Math.max(
-        1,
-        Math.floor(
-          values.length *
-            0.1,
-        ),
-      );
+    const windowSize = Math.max(
+      1,
+      Math.floor(values.length * 0.1),
+    );
 
     const firstWindow =
       values.slice(
@@ -1560,19 +1638,19 @@ function calculateTrends(
       | number
       | null = null;
 
-    if (
-      firstValue !== 0
-    ) {
-      changePercentage =
-        round(
-          ((lastValue -
+    /**
+     * If the starting value is zero, percentage change
+     * is undefined.
+     */
+    if (firstValue !== 0) {
+      changePercentage = round(
+        (
+          (lastValue -
             firstValue) /
-            Math.abs(
-              firstValue,
-            )) *
-            100,
-          2,
-        );
+          Math.abs(firstValue)
+        ) * 100,
+        2,
+      );
     }
 
     let direction:
@@ -1580,24 +1658,20 @@ function calculateTrends(
       'unknown';
 
     if (
-      changePercentage !==
-      null
+      changePercentage !== null
     ) {
       if (
-        changePercentage >
-        3
+        changePercentage > 3
       ) {
         direction =
           'increasing';
       } else if (
-        changePercentage <
-        -3
+        changePercentage < -3
       ) {
         direction =
           'decreasing';
       } else {
-        direction =
-          'flat';
+        direction = 'flat';
       }
     }
 
@@ -1605,22 +1679,32 @@ function calculateTrends(
       column,
       direction,
       changePercentage,
-
-      firstValue:
-        round(
-          firstValue,
-          4,
-        ),
-
-      lastValue:
-        round(
-          lastValue,
-          4,
-        ),
+      firstValue: round(
+        firstValue,
+        4,
+      ),
+      lastValue: round(
+        lastValue,
+        4,
+      ),
     });
   }
 
-  return trends;
+  return trends.sort(
+    (a, b) => {
+      const aChange =
+        Math.abs(
+          a.changePercentage ?? 0,
+        );
+
+      const bChange =
+        Math.abs(
+          b.changePercentage ?? 0,
+        );
+
+      return bChange - aChange;
+    },
+  );
 }
 
 /* -------------------------------------------------------------------------- */
