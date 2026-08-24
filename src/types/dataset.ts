@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------- */
-/*                              DATASET TYPES                                 */
+/* DATASET TYPES                                                              */
 /* -------------------------------------------------------------------------- */
 
 export type DatasetColumnType =
@@ -33,6 +33,10 @@ export interface DatasetColumn {
   median?: number;
 }
 
+/* -------------------------------------------------------------------------- */
+/* DATASET PROFILE                                                            */
+/* -------------------------------------------------------------------------- */
+
 export interface DatasetProfile {
   /**
    * Original uploaded file name.
@@ -41,27 +45,16 @@ export interface DatasetProfile {
 
   /**
    * MIME type or normalized file type.
-   *
-   * Examples:
-   * text/csv
-   * application/json
-   * application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
-   * text/plain
    */
   fileType: string;
 
   /**
-   * Number of records.
-   *
-   * For text-only documents this is 0 because there
-   * are no tabular records.
+   * Number of actual parsed records.
    */
   rowCount: number;
 
   /**
    * Number of detected columns.
-   *
-   * For text-only documents this is 0.
    */
   columnCount: number;
 
@@ -71,27 +64,66 @@ export interface DatasetProfile {
   columns: DatasetColumn[];
 
   /**
-   * Small sample of rows used for analysis.
+   * Small sample of rows used for preview/profile purposes.
+   *
+   * This is NOT the complete dataset.
    */
-  sampleRows: Record<string, unknown>[];
+  sampleRows: Record<
+    string,
+    unknown
+  >[];
+
+  /**
+   * Optional preview representation.
+   *
+   * Kept flexible because the profiler may expose
+   * a richer preview object.
+   */
+  preview?: unknown;
 
   /**
    * Statistical and profiling information.
    */
-  statistics?: Record<string, unknown>;
+  statistics?: Record<
+    string,
+    unknown
+  >;
 
   /**
-   * Extracted text for documents / essays / plain text files.
+   * Numeric columns detected by the profiler.
+   */
+  numericColumns?: string[];
+
+  /**
+   * Categorical columns detected by the profiler.
+   */
+  categoricalColumns?: string[];
+
+  /**
+   * Date columns detected by the profiler.
+   */
+  dateColumns?: string[];
+
+  /**
+   * Total missing values detected by the profiler.
+   */
+  totalMissingValues?: number;
+
+  /**
+   * Extracted text for documents / essays /
+   * plain text files.
    */
   textContent?: string;
 
   /**
-   * Whether the uploaded content contains structured data.
+   * Whether the uploaded content contains
+   * structured data.
    */
   isStructured: boolean;
 
   /**
-   * Whether the structured data contains useful numeric measures.
+   * Whether the structured data contains
+   * useful numeric measures.
    */
   isQuantitative: boolean;
 

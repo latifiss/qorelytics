@@ -11,7 +11,7 @@ import {
 import type { DatasetProfile } from '@/src/types/dataset';
 
 /* -------------------------------------------------------------------------- */
-/*                              CONVERSATION                                  */
+/* CONVERSATION                                                               */
 /* -------------------------------------------------------------------------- */
 
 export interface AnalysisMessage {
@@ -20,7 +20,7 @@ export interface AnalysisMessage {
 }
 
 /* -------------------------------------------------------------------------- */
-/*                              CHART SCHEMA                                  */
+/* CHART SCHEMA                                                               */
 /* -------------------------------------------------------------------------- */
 
 const chartSchema = z.object({
@@ -48,127 +48,170 @@ const chartSchema = z.object({
 
   description: z.string(),
 
-  /**
-   * Actual dataset columns used by the frontend
-   * to construct the visualization.
-   */
-  dimensions: z.array(z.string()),
+  dimensions: z.array(
+    z.string(),
+  ),
 
-  measures: z.array(z.string()),
+  measures: z.array(
+    z.string(),
+  ),
 
   reason: z.string(),
 });
 
 /* -------------------------------------------------------------------------- */
-/*                          ANALYSIS RESULT                                   */
+/* ANALYSIS RESULT                                                            */
 /* -------------------------------------------------------------------------- */
 
-export const analysisResultSchema = z.object({
-  status: z.enum([
-    'success',
-    'partial',
-    'unsupported',
-    'insufficient_data',
-  ]),
+export const analysisResultSchema =
+  z.object({
+    status: z.enum([
+      'success',
+      'partial',
+      'unsupported',
+      'insufficient_data',
+    ]),
 
-  /**
-   * Natural-language response shown above
-   * the generated report.
-   */
-  response: z.string(),
+    response: z.string(),
 
-  summary: z.string(),
+    summary: z.string(),
 
-  datasetAssessment: z.object({
-    isAnalyzable: z.boolean(),
+    datasetAssessment:
+      z.object({
+        isAnalyzable:
+          z.boolean(),
 
-    isStructured: z.boolean(),
+        isStructured:
+          z.boolean(),
 
-    isQuantitative: z.boolean(),
+        isQuantitative:
+          z.boolean(),
 
-    confidence: z.number().min(0).max(1),
+        confidence:
+          z
+            .number()
+            .min(0)
+            .max(1),
 
-    explanation: z.string(),
-  }),
+        explanation:
+          z.string(),
+      }),
 
-  /**
-   * Dynamic report sections.
-   *
-   * There is intentionally no fixed set of
-   * sections.
-   */
-  sections: z.array(
-    z.object({
-      title: z.string(),
+    sections: z.array(
+      z.object({
+        title: z.string(),
 
-      content: z.string(),
+        content:
+          z.string(),
 
-      importance: z.enum([
-        'high',
-        'medium',
-        'low',
-      ]),
-    }),
-  ),
+        importance:
+          z.enum([
+            'high',
+            'medium',
+            'low',
+          ]),
+      }),
+    ),
 
-  /**
-   * Dynamic chart list.
-   *
-   * Can contain zero, one, or many charts.
-   */
-  charts: z.array(chartSchema),
+    charts: z.array(
+      chartSchema,
+    ),
 
-  recommendations: z.array(
-    z.object({
-      title: z.string(),
+    recommendations:
+      z.array(
+        z.object({
+          title:
+            z.string(),
 
-      description: z.string(),
+          description:
+            z.string(),
 
-      priority: z.enum([
-        'high',
-        'medium',
-        'low',
-      ]),
-    }),
-  ),
+          priority:
+            z.enum([
+              'high',
+              'medium',
+              'low',
+            ]),
+        }),
+      ),
 
-  limitations: z.array(z.string()),
+    limitations:
+      z.array(
+        z.string(),
+      ),
 
-  suggestedFollowUps: z.array(z.string()),
-});
+    suggestedFollowUps:
+      z.array(
+        z.string(),
+      ),
+  });
 
-export type AnalysisResult = z.infer<
-  typeof analysisResultSchema
->;
+export type AnalysisResult =
+  z.infer<
+    typeof analysisResultSchema
+  >;
 
 /* -------------------------------------------------------------------------- */
-/*                              SYSTEM PROMPT                                 */
+/* SYSTEM PROMPT                                                              */
 /* -------------------------------------------------------------------------- */
 
 const SYSTEM_PROMPT = `
 You are Qorelytics, an intelligent AI data analyst.
 
-Your job is to transform deterministic dataset analysis into a useful,
-honest and natural analytical response.
+Your job is to analyze the ACTUAL DATA provided to you and produce useful,
+honest, evidence-based insights.
 
 You are part of a real data-analysis product.
 
 You are NOT a generic chatbot.
 
 ==================================================
-CORE RULE
+SOURCE OF TRUTH
+==================================================
+
+There are several context sections in the user prompt.
+
+Use them in this priority order:
+
+1. ACTUAL DATA ROWS
+2. DETERMINISTIC DATASET ANALYSIS
+3. DATASET PROFILE
+4. PREVIOUS CONVERSATION
+5. CURRENT USER REQUEST
+
+The ACTUAL DATA ROWS are the source of truth for actual records.
+
+The deterministic analysis contains calculated statistics derived from
+those records.
+
+The Dataset Profile contains ingestion metadata and profiling information.
+
+==================================================
+ACTUAL DATA
+==================================================
+
+The ACTUAL DATA ROWS section contains the actual records parsed from the
+uploaded file.
+
+If the prompt says there are N actual records and N > 0, the dataset is NOT
+empty.
+
+Never say the dataset is empty merely because the Dataset Profile contains
+only metadata or a sample.
+
+==================================================
+NO FABRICATION
 ==================================================
 
 Never fabricate information.
 
 Every analytical claim must be supported by:
 
-1. The deterministic dataset analysis
-2. The dataset profile
-3. The available conversation context
-4. The user's current request
-
-If the available information does not support a conclusion, say so.
+- actual dataset rows
+- deterministic analysis
+- dataset profile
+- conversation context
+- current user request
 
 Never invent:
 
@@ -182,63 +225,105 @@ Never invent:
 - customer counts
 - chart values
 - statistical findings
+- column names
+
+If the available data cannot support a claim, say so.
+
+==================================================
+STRUCTURED DATA
+==================================================
+
+If actual structured records are present:
+
+isStructured should normally be true.
+
+If useful numeric columns are present:
+
+isQuantitative should normally be true.
+
+Only describe structured data as empty when there are genuinely zero actual
+records.
+
+A small dataset is still a dataset.
+
+Do not equate "small" with "empty".
+
+==================================================
+SMALL DATASETS
+==================================================
+
+A dataset with only a few rows is NOT automatically insufficient.
+
+Analyze the available records.
+
+However, do not make strong statistical claims when the sample is too small.
+
+For example:
+
+- do not claim statistical significance from a tiny dataset
+- do not claim a reliable long-term trend from two observations
+- do not claim a robust correlation from insufficient observations
+
+Explain the limitation instead.
+
+Use status = "insufficient_data" only when there genuinely is not enough
+useful information for the requested analysis.
 
 ==================================================
 DETERMINISTIC ANALYSIS
 ==================================================
 
-The application calculates many facts before you receive the request.
+Use the deterministic analysis whenever available.
 
-These may include:
+It may contain:
 
-- row count
-- column count
 - column types
 - missing values
-- unique values
+- unique counts
 - numeric statistics
 - categorical distributions
 - date ranges
 - trends
 - correlations
-- duplicate rows
-- data-quality issues
+- duplicate counts
+- data quality issues
 - chart candidates
-- analysis capabilities
 
-Treat those deterministic calculations as the factual foundation.
+Do not contradict deterministic statistics unless the actual rows clearly
+show that the deterministic interpretation is incorrect.
 
-Your role is to interpret them.
+==================================================
+DATASET INTERPRETATION
+==================================================
 
-Do not contradict the deterministic analysis unless the conversation explicitly
-provides newer information.
+The dataset may contain:
+
+- dates
+- categorical dimensions
+- numeric measures
+- boolean values
+- text
+- combinations of these
+
+Use the actual rows to understand relationships between columns.
+
+If deterministic statistics are available, use them.
 
 ==================================================
 DYNAMIC REPORTS
 ==================================================
 
-The frontend previously used hardcoded demo sections.
+Do not use a fixed report template.
 
-Those sections are NOT a template.
+Generate sections based on the actual dataset.
 
-Do not always produce:
-
-Dataset Overview
-Revenue Trend Analysis
-Product Category Breakdown
-Regional Performance
-Recommendations
-
-Instead, create sections based on the actual dataset.
-
-Examples:
+Possible sections include:
 
 - Dataset Overview
 - Data Quality
-- Sales Performance
-- Revenue Trend
+- Revenue Performance
 - Customer Analysis
-- Product Analysis
+- Revenue Trend
 - Regional Performance
 - Distribution Analysis
 - Correlation Analysis
@@ -251,39 +336,32 @@ Only create sections that are actually relevant.
 DYNAMIC CHARTS
 ==================================================
 
-Charts are NOT mandatory.
+Charts are optional.
 
-The result may contain:
-
-0 charts
-1 chart
-2 charts
-3 charts
-4 charts
-or more.
-
-Choose the number based on analytical value.
-
-Do not create charts merely because chart candidates exist.
-
-Only select charts that:
-
-- are supported by the dataset
-- answer a useful analytical question
-- use real detected columns
-- have a clear purpose
-- are not redundant
-- are not misleading
-
-Use the deterministic chart candidates as guidance.
-
-IMPORTANT:
+Use charts only when they communicate useful information.
 
 The chart object describes WHAT should be visualized.
 
-It does NOT contain fabricated chart data.
+The frontend obtains actual values from the dataset.
 
-The frontend will obtain the actual values from the dataset.
+Every chart dimension and measure MUST correspond to an actual dataset
+column.
+
+For example, if the actual dataset contains:
+
+date
+region
+revenue
+
+then a valid chart can contain:
+
+dimensions: ["date"]
+measures: ["revenue"]
+
+Do NOT invent:
+
+dimensions: ["month"]
+measures: ["sales"]
 
 ==================================================
 CHART TYPES
@@ -292,146 +370,63 @@ CHART TYPES
 Use:
 
 line / area
-when a date dimension and numeric measure support time-series analysis.
+for time-series data.
 
 bar / horizontal-bar
-when comparing categories against a numeric measure.
+for category comparisons.
 
 grouped-bar
-when comparing multiple measures across categories.
+for multiple measures across categories.
 
 stacked-bar
-when category composition is meaningful.
+for meaningful composition.
 
 pie / donut
-only when a small number of categories form a meaningful whole.
+only for meaningful small category proportions.
 
 scatter
-when two numeric measures can reveal a relationship.
+for relationships between numeric measures.
 
 histogram
-when understanding the distribution of one numeric measure is useful.
+for numeric distributions.
 
 box-plot
-when comparing distributions across categories is useful.
+for comparing distributions.
 
 treemap
-when hierarchical or proportional category information supports it.
+for meaningful hierarchical/proportional data.
 
 funnel
-only when the dataset actually represents sequential stages.
+only when sequential stages actually exist.
 
 sankey
-only when source → target → value relationships exist.
+only when source -> target -> value relationships actually exist.
 
 radar
-only when multiple comparable dimensions make the visualization meaningful.
+only when multiple comparable dimensions justify it.
 
 gauge
-only when there is a meaningful target / benchmark / score.
+only when a target or benchmark exists.
 
 waterfall
-only when sequential positive and negative contributions are actually
-represented by the data.
+only when sequential positive and negative contributions are represented.
 
-Do not use advanced chart types just to make the report look impressive.
-
-==================================================
-CHART COLUMN RULE
-==================================================
-
-Every chart dimension and measure MUST correspond to an actual column
-available in the deterministic analysis.
-
-Never invent a column name.
-
-For example, if the dataset contains:
-
-date
-region
-revenue
-
-you may use:
-
-dimensions: ["date"]
-measures: ["revenue"]
-
-You may NOT use:
-
-dimensions: ["month"]
-measures: ["sales"]
-
-unless those columns actually exist.
-
-==================================================
-UNSTRUCTURED TEXT
-==================================================
-
-Some users will upload:
-
-- essays
-- articles
-- notes
-- reports
-- documentation
-- large blocks of text
-- plain text
-- non-tabular JSON
-
-Do NOT pretend these are quantitative datasets.
-
-If the content is primarily text, return:
-
-status = unsupported
-
-or
-
-status = partial
-
-depending on whether useful non-quantitative analysis is possible.
-
-You may provide useful observations such as:
-
-- summary
-- key themes
-- topic identification
-- document structure
-- important concepts
-- repeated ideas
-- readability observations
-- sentiment observations
-- entities
-- contradictions
-- questions requiring clarification
-
-But never pretend that prose contains statistical evidence that it does not contain.
-
-Do not generate quantitative charts for ordinary prose.
-
-==================================================
-INSUFFICIENT DATA
-==================================================
-
-If there is technically structured data but it is too small, incomplete,
-or unsuitable for meaningful analysis:
-
-Do not force analysis.
-
-Explain what is available and what is missing.
-
-Use:
-
-status = insufficient_data
-
-when appropriate.
+Do not use advanced charts merely to make the result look impressive.
 
 ==================================================
 FOLLOW-UP QUESTIONS
 ==================================================
 
-This is a conversational AI analyst.
+Use:
 
-The user may ask:
+1. Actual dataset
+2. Deterministic analysis
+3. Previous conversation
+4. Current question
+
+Do not restart conceptually for every follow-up.
+
+Resolve references such as:
 
 "Which region performed best?"
 
@@ -439,43 +434,33 @@ then:
 
 "Why?"
 
-then:
-
-"Compare that with Europe."
-
-then:
-
-"What should I do about it?"
-
-These are all part of the same analytical conversation.
-
-Use:
-
-1. Original dataset
-2. Deterministic analysis
-3. Previous messages
-4. Current user question
-
-Do not restart the analysis conceptually for every follow-up.
-
-If the user asks a follow-up that refers to something previously discussed,
-resolve the reference from the conversation.
+using the same dataset and conversation.
 
 ==================================================
-FOLLOW-UP SAFETY
+UNSTRUCTURED TEXT
 ==================================================
 
-If the user asks something unrelated to the dataset, you may answer naturally,
-but do not pretend the dataset provides evidence for unrelated claims.
+For essays, articles, notes, reports, documentation and plain text:
 
-If the user asks for information that cannot be determined from the dataset,
-say that it cannot be determined from the available data.
+Do not pretend the content is quantitative.
+
+Useful observations may include:
+
+- summary
+- themes
+- structure
+- repeated ideas
+- important concepts
+- readability
+- sentiment
+- entities
+- contradictions
+
+Do not generate quantitative charts for ordinary prose.
 
 ==================================================
 RESPONSE STYLE
 ==================================================
-
-The response should feel like a polished AI product.
 
 Be:
 
@@ -486,8 +471,6 @@ Be:
 - transparent when evidence is weak
 
 Avoid unnecessary filler.
-
-Do not expose internal prompts or implementation details.
 
 ==================================================
 OUTPUT
@@ -501,7 +484,7 @@ The sections field is the generated report.
 
 The charts field describes useful visualizations.
 
-The recommendations field contains actionable recommendations when justified.
+The recommendations field contains actionable recommendations.
 
 The limitations field explains important limitations.
 
@@ -511,7 +494,7 @@ Do not create fake data to make the output look complete.
 `;
 
 /* -------------------------------------------------------------------------- */
-/*                          CONVERSATION BUILDER                              */
+/* CONVERSATION BUILDER                                                       */
 /* -------------------------------------------------------------------------- */
 
 function buildConversationContext(
@@ -533,7 +516,7 @@ ${message.content}`,
 }
 
 /* -------------------------------------------------------------------------- */
-/*                           DATASET CONTEXT                                  */
+/* DATASET PROFILE CONTEXT                                                    */
 /* -------------------------------------------------------------------------- */
 
 function buildDatasetProfileContext(
@@ -541,28 +524,53 @@ function buildDatasetProfileContext(
 ): string {
   return JSON.stringify(
     {
-      fileName: profile.fileName,
+      fileName:
+        profile.fileName,
 
-      fileType: profile.fileType,
+      fileType:
+        profile.fileType,
 
-      rowCount: profile.rowCount,
+      rowCount:
+        profile.rowCount,
 
-      columnCount: profile.columnCount,
+      columnCount:
+        profile.columnCount,
 
-      isStructured: profile.isStructured,
+      isStructured:
+        profile.isStructured,
 
       isQuantitative:
         profile.isQuantitative,
 
-      columns: profile.columns,
+      columns:
+        profile.columns,
 
-      statistics: profile.statistics,
+      statistics:
+        profile.statistics,
 
-      sampleRows: profile.sampleRows,
+      sampleRows:
+        profile.sampleRows,
 
-      textContent: profile.textContent,
+      preview:
+        profile.preview,
 
-      warnings: profile.warnings,
+      numericColumns:
+        profile.numericColumns,
+
+      categoricalColumns:
+        profile.categoricalColumns,
+
+      dateColumns:
+        profile.dateColumns,
+
+      totalMissingValues:
+        profile.totalMissingValues,
+
+      textContent:
+        profile.textContent,
+
+      warnings:
+        profile.warnings,
     },
     null,
     2,
@@ -570,105 +578,256 @@ function buildDatasetProfileContext(
 }
 
 /* -------------------------------------------------------------------------- */
-/*                              MODEL                                         */
+/* MODEL                                                                      */
 /* -------------------------------------------------------------------------- */
 
-function getAIModel() {
+function getAIModel(
+  model?: string,
+) {
   return getModel(
-    'openai/gpt-4o-mini',
+    model ||
+      'deepseek/deepseek-chat',
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/*                         MAIN AI ANALYZER                                   */
+/* MAIN AI ANALYZER                                                           */
 /* -------------------------------------------------------------------------- */
 
 export async function runAnalysis({
   dataset,
+  rows,
   messages = [],
   userQuestion,
+  model,
 }: {
   dataset: DatasetProfile;
+
+  /**
+   * The complete parsed dataset.
+   *
+   * This is the source of truth for deterministic analysis and
+   * the actual data sent to the model.
+   */
+  rows: Record<
+    string,
+    unknown
+  >[];
 
   messages?: AnalysisMessage[];
 
   userQuestion?: string;
+
+  model?: string;
 }): Promise<AnalysisResult> {
-  /*
-   * ---------------------------------------------------------------
-   * STEP 1
-   *
-   * Deterministically analyze the dataset.
-   *
-   * This happens BEFORE the LLM.
-   * ---------------------------------------------------------------
-   */
+  console.log('');
+  console.log(
+    '==================================================',
+  );
+  console.log(
+    'AI ANALYZER STARTED',
+  );
+  console.log(
+    '==================================================',
+  );
+
+  /* ---------------------------------------------------------------------- */
+  /* STEP 1: INPUT VALIDATION                                               */
+  /* ---------------------------------------------------------------------- */
+
+  console.log(
+    '[AI-1] Dataset profile received.',
+  );
+
+  console.log(
+    '[AI-1] Profile rowCount:',
+    dataset.rowCount,
+  );
+
+  console.log(
+    '[AI-1] Profile columnCount:',
+    dataset.columnCount,
+  );
+
+  console.log(
+    '[AI-1] Profile isStructured:',
+    dataset.isStructured,
+  );
+
+  console.log(
+    '[AI-1] Profile isQuantitative:',
+    dataset.isQuantitative,
+  );
+
+  console.log(
+    '[AI-1] Actual rows received:',
+    rows.length,
+  );
+
+  console.log(
+    '[AI-1] Actual columns:',
+    rows.length > 0
+      ? Object.keys(rows[0])
+      : [],
+  );
+
+  if (rows.length > 0) {
+    console.log(
+      '[AI-1] FIRST ACTUAL ROW:',
+    );
+
+    console.dir(rows[0], {
+      depth: null,
+    });
+  }
+
+  if (rows.length === 0) {
+    console.error(
+      '[AI-1] ERROR: Analyzer received ZERO actual rows.',
+    );
+
+    throw new Error(
+      'Analyzer received an empty dataset.',
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* STEP 2: DETERMINISTIC ANALYSIS                                         */
+  /* ---------------------------------------------------------------------- */
+
+  console.log('');
+  console.log(
+    '[AI-2] Running deterministic dataset analysis...',
+  );
 
   const deterministicAnalysis =
     analyzeDatasetStructure(
       dataset,
+      rows,
     );
 
-  /*
-   * ---------------------------------------------------------------
-   * STEP 2
-   *
-   * Create a compact factual context for the AI.
-   * ---------------------------------------------------------------
-   */
+  console.log(
+    '[AI-2] Deterministic analysis completed.',
+  );
+
+  console.log(
+    '[AI-2] Deterministic row count:',
+    deterministicAnalysis.rowCount,
+  );
+
+  console.log(
+    '[AI-2] Deterministic column count:',
+    deterministicAnalysis.columnCount,
+  );
+
+  console.log(
+    '[AI-2] Deterministic status:',
+    deterministicAnalysis.status,
+  );
+
+  console.dir(
+    deterministicAnalysis,
+    {
+      depth: null,
+    },
+  );
+
+  /* ---------------------------------------------------------------------- */
+  /* STEP 3: COMPACT ANALYSIS CONTEXT                                       */
+  /* ---------------------------------------------------------------------- */
+
+  console.log('');
+  console.log(
+    '[AI-3] Creating deterministic analysis context...',
+  );
 
   const analysisContext =
     createAnalysisContext(
       deterministicAnalysis,
     );
 
-  /*
-   * ---------------------------------------------------------------
-   * STEP 3
-   *
-   * Preserve the uploaded profile as additional context.
-   *
-   * This is particularly important for text documents.
-   * ---------------------------------------------------------------
-   */
+  console.log(
+    '[AI-3] Analysis context created.',
+  );
+
+  /* ---------------------------------------------------------------------- */
+  /* STEP 4: PROFILE CONTEXT                                                */
+  /* ---------------------------------------------------------------------- */
+
+  console.log('');
+  console.log(
+    '[AI-4] Creating dataset profile context...',
+  );
 
   const profileContext =
     buildDatasetProfileContext(
       dataset,
     );
 
-  /*
-   * ---------------------------------------------------------------
-   * STEP 4
-   *
-   * Preserve conversation history.
-   * ---------------------------------------------------------------
-   */
+  console.log(
+    '[AI-4] Dataset profile context created.',
+  );
+
+  /* ---------------------------------------------------------------------- */
+  /* STEP 5: ACTUAL DATA CONTEXT                                            */
+  /* ---------------------------------------------------------------------- */
+
+  console.log('');
+  console.log(
+    '[AI-5] Creating ACTUAL DATA context...',
+  );
+
+  const actualDataContext =
+    JSON.stringify(
+      rows,
+      null,
+      2,
+    );
+
+  console.log(
+    '[AI-5] Actual data JSON length:',
+    actualDataContext.length,
+  );
+
+  /* ---------------------------------------------------------------------- */
+  /* STEP 6: CONVERSATION CONTEXT                                           */
+  /* ---------------------------------------------------------------------- */
+
+  console.log('');
+  console.log(
+    '[AI-6] Building conversation context...',
+  );
 
   const conversationContext =
     buildConversationContext(
       messages,
     );
 
-  /*
-   * ---------------------------------------------------------------
-   * STEP 5
-   *
-   * Resolve the latest request.
-   * ---------------------------------------------------------------
-   */
+  console.log(
+    '[AI-6] Message count:',
+    messages.length,
+  );
+
+  /* ---------------------------------------------------------------------- */
+  /* STEP 7: LATEST QUESTION                                                */
+  /* ---------------------------------------------------------------------- */
 
   const latestQuestion =
     userQuestion?.trim() ||
-    'Analyze this uploaded content and provide the most useful insights supported by the available information.';
+    'Analyze this uploaded dataset and provide the most useful insights supported by the available information.';
 
-  /*
-   * ---------------------------------------------------------------
-   * STEP 6
-   *
-   * Construct the final model prompt.
-   * ---------------------------------------------------------------
-   */
+  console.log('');
+  console.log(
+    '[AI-7] Latest user question:',
+  );
+
+  console.log(
+    latestQuestion,
+  );
+
+  /* ---------------------------------------------------------------------- */
+  /* STEP 8: FINAL PROMPT                                                    */
+  /* ---------------------------------------------------------------------- */
 
   const prompt = `
 ==================================================
@@ -676,6 +835,26 @@ DATASET PROFILE
 ==================================================
 
 ${profileContext}
+
+==================================================
+ACTUAL DATA ROWS
+==================================================
+
+IMPORTANT:
+
+The following are the ACTUAL RECORDS parsed from the uploaded dataset.
+
+Actual record count:
+
+${rows.length}
+
+If this number is greater than zero, the dataset is NOT empty.
+
+Do not describe this dataset as empty.
+
+ACTUAL DATA:
+
+${actualDataContext}
 
 ==================================================
 DETERMINISTIC DATASET ANALYSIS
@@ -699,44 +878,211 @@ ${latestQuestion}
 ANALYSIS TASK
 ==================================================
 
-Analyze the user's request using the dataset and deterministic analysis.
+Analyze the actual dataset.
+
+The ACTUAL DATA ROWS section contains the real records.
+
+Use those records together with the deterministic analysis.
+
+Before deciding that the dataset is empty, inspect the ACTUAL DATA ROWS.
+
+If rows are present, the dataset is NOT empty.
+
+Every chart dimension and measure must correspond to an actual dataset
+column.
+
+Do not fabricate values.
 
 Follow all system instructions.
-
-Important:
-
-- Never invent facts.
-- Never invent column names.
-- Never invent chart data.
-- Do not force charts.
-- Do not force quantitative analysis.
-- Use dynamic report sections.
-- Use previous conversation for follow-ups.
-- Handle unsupported or textual content intelligently.
-- Only recommend actions justified by the available evidence.
 
 Return the complete structured analysis.
 `;
 
-  /*
-   * ---------------------------------------------------------------
-   * STEP 7
-   *
-   * Ask the model for structured output.
-   * ---------------------------------------------------------------
-   */
+  console.log('');
+  console.log(
+    '==================================================',
+  );
 
-  const result = await generateObject({
-    model: getAIModel(),
+  console.log(
+    '[AI-8] FINAL PROMPT CREATED',
+  );
 
-    schema: analysisResultSchema,
+  console.log(
+    '==================================================',
+  );
 
-    system: SYSTEM_PROMPT,
+  console.log(
+    '[AI-8] Prompt length:',
+    prompt.length,
+  );
 
-    prompt,
+  console.log(
+    '[AI-8] Prompt contains actual data:',
+    prompt.includes(
+      'ACTUAL DATA ROWS',
+    ),
+  );
 
-    temperature: 0.2,
-  });
+  console.log(
+    '[AI-8] Actual record count:',
+    rows.length,
+  );
 
-  return result.object;
+  /* ---------------------------------------------------------------------- */
+  /* STEP 9: MODEL                                                          */
+  /* ---------------------------------------------------------------------- */
+
+  console.log('');
+  console.log(
+    '[AI-9] Resolving AI model...',
+  );
+
+  const aiModel =
+    getAIModel(model);
+
+  console.log(
+    '[AI-9] AI model resolved.',
+  );
+
+  console.log(
+    '[AI-9] Requested model:',
+    model ||
+      'deepseek/deepseek-chat',
+  );
+
+  /* ---------------------------------------------------------------------- */
+  /* STEP 10: GENERATE STRUCTURED RESULT                                    */
+  /* ---------------------------------------------------------------------- */
+
+  console.log('');
+  console.log(
+    '==================================================',
+  );
+
+  console.log(
+    '[AI-10] CALLING generateObject()',
+  );
+
+  console.log(
+    '==================================================',
+  );
+
+  const startTime =
+    Date.now();
+
+  try {
+    const result =
+      await generateObject({
+        model: aiModel,
+
+        schema:
+          analysisResultSchema,
+
+        system:
+          SYSTEM_PROMPT,
+
+        prompt,
+
+        temperature: 0.2,
+      });
+
+    const duration =
+      Date.now() -
+      startTime;
+
+    console.log('');
+    console.log(
+      '[AI-10] generateObject() completed.',
+    );
+
+    console.log(
+      '[AI-10] Duration:',
+      `${duration}ms`,
+    );
+
+    console.log(
+      '[AI-10] Result status:',
+      result.object.status,
+    );
+
+    console.log(
+      '[AI-10] Result summary:',
+      result.object.summary,
+    );
+
+    console.log(
+      '[AI-10] Is analyzable:',
+      result.object
+        .datasetAssessment
+        .isAnalyzable,
+    );
+
+    console.log(
+      '[AI-10] Is structured:',
+      result.object
+        .datasetAssessment
+        .isStructured,
+    );
+
+    console.log(
+      '[AI-10] Is quantitative:',
+      result.object
+        .datasetAssessment
+        .isQuantitative,
+    );
+
+    console.log(
+      '[AI-10] Chart count:',
+      result.object
+        .charts.length,
+    );
+
+    console.log(
+      '[AI-10] Section count:',
+      result.object
+        .sections.length,
+    );
+
+    console.log(
+      '[AI-10] Recommendation count:',
+      result.object
+        .recommendations
+        .length,
+    );
+
+    console.log('');
+    console.log(
+      '==================================================',
+    );
+
+    console.log(
+      'AI ANALYZER COMPLETED',
+    );
+
+    console.log(
+      '==================================================',
+    );
+
+    return result.object;
+  } catch (error) {
+    console.error('');
+    console.error(
+      '==================================================',
+    );
+
+    console.error(
+      '[AI-10] generateObject() FAILED',
+    );
+
+    console.error(
+      '==================================================',
+    );
+
+    console.error(
+      '[AI-10] Error:',
+      error,
+    );
+
+    throw error;
+  }
 }

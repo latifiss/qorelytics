@@ -61,7 +61,11 @@ export interface ColumnAnalysis {
 
 export interface TrendAnalysis {
   column: string;
-  direction: 'increasing' | 'decreasing' | 'flat' | 'unknown';
+  direction:
+    | 'increasing'
+    | 'decreasing'
+    | 'flat'
+    | 'unknown';
   changePercentage: number | null;
   firstValue: number | null;
   lastValue: number | null;
@@ -71,7 +75,11 @@ export interface CorrelationAnalysis {
   columnA: string;
   columnB: string;
   correlation: number;
-  strength: 'very-strong' | 'strong' | 'moderate' | 'weak';
+  strength:
+    | 'very-strong'
+    | 'strong'
+    | 'moderate'
+    | 'weak';
   direction: 'positive' | 'negative';
 }
 
@@ -85,7 +93,12 @@ export interface DataQualityIssue {
     | 'duplicate-rows';
 
   column?: string;
-  severity: 'high' | 'medium' | 'low';
+
+  severity:
+    | 'high'
+    | 'medium'
+    | 'low';
+
   message: string;
 }
 
@@ -165,7 +178,9 @@ type DataRow = Record<string, unknown>;
 /* HELPERS                                                                    */
 /* -------------------------------------------------------------------------- */
 
-function isObject(value: unknown): value is Record<string, unknown> {
+function isObject(
+  value: unknown,
+): value is Record<string, unknown> {
   return (
     typeof value === 'object' &&
     value !== null &&
@@ -173,70 +188,64 @@ function isObject(value: unknown): value is Record<string, unknown> {
   );
 }
 
-function toRows(profile: DatasetProfile): DataRow[] {
-  const value = profile as unknown as Record<string, unknown>;
-
-  /*
-   * Your existing DatasetProfile may expose rows under different names
-   * depending on which ingestion path created it.
-   *
-   * We deliberately support the common shapes without changing the
-   * existing DatasetProfile type.
-   */
-
-  const possibleRows = [
-    value.rows,
-    value.data,
-    value.records,
-  ];
-
-  for (const candidate of possibleRows) {
-    if (!Array.isArray(candidate)) {
-      continue;
-    }
-
-    return candidate.filter(isObject) as DataRow[];
-  }
-
-  return [];
+/**
+ * IMPORTANT:
+ *
+ * The actual parsed rows are now passed directly into the analyzer.
+ *
+ * DatasetProfile is metadata/profile information.
+ * It should not be responsible for carrying the entire dataset.
+ */
+function toRows(
+  rows: Record<string, unknown>[],
+): DataRow[] {
+  return rows.filter(isObject);
 }
 
 function getProfileColumns(
   profile: DatasetProfile,
   rows: DataRow[],
 ): string[] {
-  const value = profile as unknown as Record<string, unknown>;
+  const value =
+    profile as unknown as Record<
+      string,
+      unknown
+    >;
 
   const possibleColumns = [
     value.columns,
   ];
 
   for (const candidate of possibleColumns) {
-    if (Array.isArray(candidate)) {
-      const names = candidate
-        .map((column) => {
-          if (typeof column === 'string') {
-            return column;
+    if (!Array.isArray(candidate)) {
+      continue;
+    }
+
+    const names = candidate
+      .map((column) => {
+        if (typeof column === 'string') {
+          return column;
+        }
+
+        if (isObject(column)) {
+          const name = column.name;
+
+          if (typeof name === 'string') {
+            return name;
           }
+        }
 
-          if (isObject(column)) {
-            const name = column.name;
+        return null;
+      })
+      .filter(
+        (
+          name,
+        ): name is string =>
+          typeof name === 'string',
+      );
 
-            if (typeof name === 'string') {
-              return name;
-            }
-          }
-
-          return null;
-        })
-        .filter(
-          (name): name is string =>
-            typeof name === 'string',
-        );
-
-      if (names.length > 0) {
-        return names;
-      }
+    if (names.length > 0) {
+      return names;
     }
   }
 
@@ -251,21 +260,46 @@ function getProfileColumns(
   return Array.from(names);
 }
 
-function normalizeString(value: unknown): string {
-  if (value === null || value === undefined) {
+function normalizeString(
+  value: unknown,
+): string {
+  if (
+    value === null ||
+    value === undefined
+  ) {
     return '';
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (
+    typeof value === 'object'
+  ) {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
   }
 
   return String(value).trim();
 }
 
-function isMissing(value: unknown): boolean {
-  if (value === null || value === undefined) {
+function isMissing(
+  value: unknown,
+): boolean {
+  if (
+    value === null ||
+    value === undefined
+  ) {
     return true;
   }
 
   if (typeof value === 'string') {
-    const normalized = value.trim().toLowerCase();
+    const normalized =
+      value.trim().toLowerCase();
 
     return (
       normalized === '' ||
@@ -281,7 +315,9 @@ function isMissing(value: unknown): boolean {
   return false;
 }
 
-function toNumber(value: unknown): number | null {
+function toNumber(
+  value: unknown,
+): number | null {
   if (typeof value === 'number') {
     return Number.isFinite(value)
       ? value
@@ -293,7 +329,10 @@ function toNumber(value: unknown): number | null {
   }
 
   const normalized = value
-    .replace(/[$€£¥₹,%]/g, '')
+    .replace(
+      /[$€£¥₹,%]/g,
+      '',
+    )
     .replace(/,/g, '')
     .trim();
 
@@ -301,14 +340,18 @@ function toNumber(value: unknown): number | null {
     return null;
   }
 
-  const number = Number(normalized);
+  const number = Number(
+    normalized,
+  );
 
   return Number.isFinite(number)
     ? number
     : null;
 }
 
-function isBooleanLike(value: unknown): boolean {
+function isBooleanLike(
+  value: unknown,
+): boolean {
   if (typeof value === 'boolean') {
     return true;
   }
@@ -317,9 +360,8 @@ function isBooleanLike(value: unknown): boolean {
     return false;
   }
 
-  const normalized = value
-    .trim()
-    .toLowerCase();
+  const normalized =
+    value.trim().toLowerCase();
 
   return [
     'true',
@@ -331,9 +373,13 @@ function isBooleanLike(value: unknown): boolean {
   ].includes(normalized);
 }
 
-function parseDate(value: unknown): Date | null {
+function parseDate(
+  value: unknown,
+): Date | null {
   if (value instanceof Date) {
-    return Number.isNaN(value.getTime())
+    return Number.isNaN(
+      value.getTime(),
+    )
       ? null
       : value;
   }
@@ -347,7 +393,11 @@ function parseDate(value: unknown): Date | null {
 
   const date = new Date(value);
 
-  if (Number.isNaN(date.getTime())) {
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
     return null;
   }
 
@@ -357,106 +407,141 @@ function parseDate(value: unknown): Date | null {
 function looksLikeDateColumn(
   values: unknown[],
 ): boolean {
-  const validValues = values.filter(
-    (value) => !isMissing(value),
-  );
+  const validValues =
+    values.filter(
+      (value) =>
+        !isMissing(value),
+    );
 
   if (validValues.length < 3) {
     return false;
   }
 
-  const parsedCount = validValues.filter(
-    (value) => parseDate(value) !== null,
-  ).length;
+  const parsedCount =
+    validValues.filter(
+      (value) =>
+        parseDate(value) !== null,
+    ).length;
 
   return (
-    parsedCount / validValues.length >= 0.8
+    parsedCount /
+      validValues.length >=
+    0.8
   );
 }
 
 function looksLikeNumericColumn(
   values: unknown[],
 ): boolean {
-  const validValues = values.filter(
-    (value) => !isMissing(value),
-  );
+  const validValues =
+    values.filter(
+      (value) =>
+        !isMissing(value),
+    );
 
   if (validValues.length === 0) {
     return false;
   }
 
-  const numericCount = validValues.filter(
-    (value) => toNumber(value) !== null,
-  ).length;
+  const numericCount =
+    validValues.filter(
+      (value) =>
+        toNumber(value) !== null,
+    ).length;
 
   return (
-    numericCount / validValues.length >= 0.8
+    numericCount /
+      validValues.length >=
+    0.8
   );
 }
 
 function determineColumnKind(
   values: unknown[],
 ): ColumnKind {
-  const validValues = values.filter(
-    (value) => !isMissing(value),
-  );
+  const validValues =
+    values.filter(
+      (value) =>
+        !isMissing(value),
+    );
 
   if (validValues.length === 0) {
     return 'unknown';
   }
 
   if (
-    validValues.every(isBooleanLike)
+    validValues.every(
+      isBooleanLike,
+    )
   ) {
     return 'boolean';
   }
 
   /*
-   * Check dates before text because ISO dates are strings.
+   * Dates before text because dates are commonly strings.
    */
-  if (looksLikeDateColumn(validValues)) {
+  if (
+    looksLikeDateColumn(
+      validValues,
+    )
+  ) {
     return 'date';
   }
 
-  if (looksLikeNumericColumn(validValues)) {
+  if (
+    looksLikeNumericColumn(
+      validValues,
+    )
+  ) {
     return 'numeric';
   }
 
-  const uniqueValues = new Set(
-    validValues.map(normalizeString),
-  );
+  const uniqueValues =
+    new Set(
+      validValues.map(
+        normalizeString,
+      ),
+    );
 
-  /*
-   * A small number of repeating values generally represents
-   * a categorical dimension.
-   */
   if (
     uniqueValues.size <=
-    Math.min(100, validValues.length * 0.5)
+    Math.min(
+      100,
+      Math.max(
+        1,
+        validValues.length *
+          0.5,
+      ),
+    )
   ) {
     return 'categorical';
   }
 
-  /*
-   * Long strings / mostly unique strings are treated as text.
-   */
   return 'text';
 }
 
-function median(values: number[]): number | null {
+function median(
+  values: number[],
+): number | null {
   if (values.length === 0) {
     return null;
   }
 
-  const sorted = [...values].sort(
+  const sorted = [
+    ...values,
+  ].sort(
     (a, b) => a - b,
   );
 
-  const middle = Math.floor(
-    sorted.length / 2,
-  );
+  const middle =
+    Math.floor(
+      sorted.length / 2,
+    );
 
-  if (sorted.length % 2 === 0) {
+  if (
+    sorted.length % 2 ===
+    0
+  ) {
     return (
       (sorted[middle - 1] +
         sorted[middle]) /
@@ -476,7 +561,8 @@ function standardDeviation(
 
   const mean =
     values.reduce(
-      (sum, value) => sum + value,
+      (sum, value) =>
+        sum + value,
       0,
     ) / values.length;
 
@@ -484,7 +570,10 @@ function standardDeviation(
     values.reduce(
       (sum, value) =>
         sum +
-        Math.pow(value - mean, 2),
+        Math.pow(
+          value - mean,
+          2,
+        ),
       0,
     ) / values.length;
 
@@ -500,7 +589,8 @@ function percentage(
   }
 
   return (
-    (numerator / denominator) *
+    (numerator /
+      denominator) *
     100
   );
 }
@@ -510,11 +600,15 @@ function round(
   decimals = 4,
 ): number {
   const factor =
-    Math.pow(10, decimals);
+    Math.pow(
+      10,
+      decimals,
+    );
 
   return (
-    Math.round(value * factor) /
-    factor
+    Math.round(
+      value * factor,
+    ) / factor
   );
 }
 
@@ -525,18 +619,24 @@ function round(
 function analyzeNumericColumn(
   values: unknown[],
 ): NumericStats {
-  const numericValues = values
-    .map(toNumber)
-    .filter(
-      (value): value is number =>
-        value !== null,
-    );
+  const numericValues =
+    values
+      .map(toNumber)
+      .filter(
+        (
+          value,
+        ): value is number =>
+          value !== null,
+      );
 
   const missing =
     values.length -
     numericValues.length;
 
-  if (numericValues.length === 0) {
+  if (
+    numericValues.length ===
+    0
+  ) {
     return {
       count: 0,
       missing,
@@ -545,7 +645,8 @@ function analyzeNumericColumn(
       mean: null,
       median: null,
       sum: null,
-      standardDeviation: null,
+      standardDeviation:
+        null,
       uniqueCount: 0,
     };
   }
@@ -558,7 +659,8 @@ function analyzeNumericColumn(
     );
 
   return {
-    count: numericValues.length,
+    count:
+      numericValues.length,
     missing,
     min: Math.min(
       ...numericValues,
@@ -567,16 +669,19 @@ function analyzeNumericColumn(
       ...numericValues,
     ),
     mean:
-      sum / numericValues.length,
-    median: median(numericValues),
+      sum /
+      numericValues.length,
+    median:
+      median(numericValues),
     sum,
     standardDeviation:
       standardDeviation(
         numericValues,
       ),
-    uniqueCount: new Set(
-      numericValues,
-    ).size,
+    uniqueCount:
+      new Set(
+        numericValues,
+      ).size,
   };
 }
 
@@ -587,9 +692,11 @@ function analyzeNumericColumn(
 function analyzeCategoricalColumn(
   values: unknown[],
 ): CategoricalStats {
-  const validValues = values.filter(
-    (value) => !isMissing(value),
-  );
+  const validValues =
+    values.filter(
+      (value) =>
+        !isMissing(value),
+    );
 
   const counts =
     new Map<string, number>();
@@ -600,38 +707,43 @@ function analyzeCategoricalColumn(
 
     counts.set(
       normalized,
-      (counts.get(normalized) ?? 0) +
-        1,
+      (counts.get(
+        normalized,
+      ) ?? 0) + 1,
     );
   }
 
-  const topValues = Array.from(
-    counts.entries(),
-  )
-    .sort(
-      (a, b) => b[1] - a[1],
+  const topValues =
+    Array.from(
+      counts.entries(),
     )
-    .slice(0, 10)
-    .map(
-      ([value, count]) => ({
-        value,
-        count,
-        percentage: round(
-          percentage(
-            count,
-            validValues.length,
+      .sort(
+        (a, b) =>
+          b[1] - a[1],
+      )
+      .slice(0, 10)
+      .map(
+        ([value, count]) => ({
+          value,
+          count,
+          percentage: round(
+            percentage(
+              count,
+              validValues.length,
+            ),
+            2,
           ),
-          2,
-        ),
-      }),
-    );
+        }),
+      );
 
   return {
-    count: validValues.length,
+    count:
+      validValues.length,
     missing:
       values.length -
       validValues.length,
-    uniqueCount: counts.size,
+    uniqueCount:
+      counts.size,
     topValues,
   };
 }
@@ -643,15 +755,19 @@ function analyzeCategoricalColumn(
 function analyzeDateColumn(
   values: unknown[],
 ): DateStats {
-  const dates = values
-    .filter(
-      (value) => !isMissing(value),
-    )
-    .map(parseDate)
-    .filter(
-      (date): date is Date =>
-        date !== null,
-    );
+  const dates =
+    values
+      .filter(
+        (value) =>
+          !isMissing(value),
+      )
+      .map(parseDate)
+      .filter(
+        (
+          date,
+        ): date is Date =>
+          date !== null,
+      );
 
   if (dates.length === 0) {
     return {
@@ -664,21 +780,28 @@ function analyzeDateColumn(
     };
   }
 
-  const timestamps = dates.map(
-    (date) => date.getTime(),
-  );
+  const timestamps =
+    dates.map(
+      (date) =>
+        date.getTime(),
+    );
 
-  const minTime = Math.min(
-    ...timestamps,
-  );
+  const minTime =
+    Math.min(
+      ...timestamps,
+    );
 
-  const maxTime = Math.max(
-    ...timestamps,
-  );
+  const maxTime =
+    Math.max(
+      ...timestamps,
+    );
 
   const spanDays =
     (maxTime - minTime) /
-    (1000 * 60 * 60 * 24);
+    (1000 *
+      60 *
+      60 *
+      24);
 
   const uniqueDates =
     new Set(
@@ -693,7 +816,8 @@ function analyzeDateColumn(
   return {
     count: dates.length,
     missing:
-      values.length - dates.length,
+      values.length -
+      dates.length,
     min: new Date(
       minTime,
     ).toISOString(),
@@ -717,16 +841,22 @@ function analyzeColumn(
   name: string,
   rows: DataRow[],
 ): ColumnAnalysis {
-  const values = rows.map(
-    (row) => row[name],
-  );
+  const values =
+    rows.map(
+      (row) =>
+        row[name],
+    );
 
   const kind =
-    determineColumnKind(values);
+    determineColumnKind(
+      values,
+    );
 
-  const validValues = values.filter(
-    (value) => !isMissing(value),
-  );
+  const validValues =
+    values.filter(
+      (value) =>
+        !isMissing(value),
+    );
 
   const uniqueCount =
     new Set(
@@ -748,31 +878,37 @@ function analyzeColumn(
       ),
     ).slice(0, 5);
 
-  const result: ColumnAnalysis = {
-    name,
-    kind,
-    nullable:
-      missingCount > 0,
-    uniqueCount,
-    missingCount,
-    missingPercentage: round(
-      percentage(
-        missingCount,
-        rows.length,
-      ),
-      2,
-    ),
-    sampleValues,
-  };
+  const result: ColumnAnalysis =
+    {
+      name,
+      kind,
+      nullable:
+        missingCount > 0,
+      uniqueCount,
+      missingCount,
+      missingPercentage:
+        round(
+          percentage(
+            missingCount,
+            rows.length,
+          ),
+          2,
+        ),
+      sampleValues,
+    };
 
-  if (kind === 'numeric') {
+  if (
+    kind === 'numeric'
+  ) {
     result.numeric =
       analyzeNumericColumn(
         values,
       );
   }
 
-  if (kind === 'categorical') {
+  if (
+    kind === 'categorical'
+  ) {
     result.categorical =
       analyzeCategoricalColumn(
         values,
@@ -793,34 +929,68 @@ function analyzeColumn(
 /* DUPLICATES                                                                 */
 /* -------------------------------------------------------------------------- */
 
+function stableSerialize(
+  value: unknown,
+): string {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return String(value);
+  }
+
+  if (
+    typeof value !==
+      'object' ||
+    value instanceof Date
+  ) {
+    return JSON.stringify(
+      value,
+    );
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value
+      .map(stableSerialize)
+      .join(',')}]`;
+  }
+
+  const object =
+    value as Record<
+      string,
+      unknown
+    >;
+
+  return `{${Object.keys(
+    object,
+  )
+    .sort()
+    .map(
+      (key) =>
+        `${JSON.stringify(
+          key,
+        )}:${stableSerialize(
+          object[key],
+        )}`,
+    )
+    .join(',')}}`;
+}
+
 function countDuplicateRows(
   rows: DataRow[],
 ): number {
-  const seen = new Set<string>();
+  const seen =
+    new Set<string>();
+
   let duplicates = 0;
 
   for (const row of rows) {
-    let serialized: string;
+    const serialized =
+      stableSerialize(row);
 
-    try {
-      serialized =
-        JSON.stringify(row);
-    } catch {
-      serialized =
-        Object.entries(row)
-          .sort(([a], [b]) =>
-            a.localeCompare(b),
-          )
-          .map(
-            ([key, value]) =>
-              `${key}:${String(
-                value,
-              )}`,
-          )
-          .join('|');
-    }
-
-    if (seen.has(serialized)) {
+    if (
+      seen.has(serialized)
+    ) {
       duplicates++;
     } else {
       seen.add(serialized);
@@ -874,9 +1044,14 @@ function pearsonCorrelation(
     const dy =
       y[index] - meanY;
 
-    numerator += dx * dy;
-    denominatorX += dx * dx;
-    denominatorY += dy * dy;
+    numerator +=
+      dx * dy;
+
+    denominatorX +=
+      dx * dx;
+
+    denominatorY +=
+      dy * dy;
   }
 
   const denominator =
@@ -885,12 +1060,15 @@ function pearsonCorrelation(
         denominatorY,
     );
 
-  if (denominator === 0) {
+  if (
+    denominator === 0
+  ) {
     return null;
   }
 
   return (
-    numerator / denominator
+    numerator /
+    denominator
   );
 }
 
@@ -924,12 +1102,14 @@ function calculateCorrelations(
 
   for (
     let i = 0;
-    i < numericColumns.length;
+    i <
+    numericColumns.length;
     i++
   ) {
     for (
       let j = i + 1;
-      j < numericColumns.length;
+      j <
+      numericColumns.length;
       j++
     ) {
       const columnA =
@@ -945,10 +1125,14 @@ function calculateCorrelations(
 
       for (const row of rows) {
         const x =
-          toNumber(row[columnA]);
+          toNumber(
+            row[columnA],
+          );
 
         const y =
-          toNumber(row[columnB]);
+          toNumber(
+            row[columnB],
+          );
 
         if (
           x !== null &&
@@ -961,17 +1145,21 @@ function calculateCorrelations(
         }
       }
 
-      if (pairs.length < 3) {
+      if (
+        pairs.length < 3
+      ) {
         continue;
       }
 
       const correlation =
         pearsonCorrelation(
           pairs.map(
-            (pair) => pair.x,
+            (pair) =>
+              pair.x,
           ),
           pairs.map(
-            (pair) => pair.y,
+            (pair) =>
+              pair.y,
           ),
         );
 
@@ -981,13 +1169,10 @@ function calculateCorrelations(
         continue;
       }
 
-      /*
-       * Weak correlations are still useful to the AI,
-       * but we avoid flooding the result with noise.
-       */
       if (
-        Math.abs(correlation) <
-        0.25
+        Math.abs(
+          correlation,
+        ) < 0.25
       ) {
         continue;
       }
@@ -995,10 +1180,11 @@ function calculateCorrelations(
       results.push({
         columnA,
         columnB,
-        correlation: round(
-          correlation,
-          4,
-        ),
+        correlation:
+          round(
+            correlation,
+            4,
+          ),
         strength:
           correlationStrength(
             correlation,
@@ -1028,7 +1214,9 @@ function calculateCorrelations(
 
 function calculateTrends(
   rows: DataRow[],
-  dateColumn: string | undefined,
+  dateColumn:
+    | string
+    | undefined,
   numericColumns: string[],
 ): TrendAnalysis[] {
   if (!dateColumn) {
@@ -1060,17 +1248,22 @@ function calculateTrends(
 
     for (const column of numericColumns) {
       const value =
-        toNumber(row[column]);
+        toNumber(
+          row[column],
+        );
 
-      if (value !== null) {
+      if (
+        value !== null
+      ) {
         values[column] =
           value;
       }
     }
 
     if (
-      Object.keys(values)
-        .length > 0
+      Object.keys(
+        values,
+      ).length > 0
     ) {
       records.push({
         date,
@@ -1085,7 +1278,9 @@ function calculateTrends(
       b.date.getTime(),
   );
 
-  if (records.length < 2) {
+  if (
+    records.length < 2
+  ) {
     return [];
   }
 
@@ -1109,16 +1304,12 @@ function calculateTrends(
             undefined,
         );
 
-    if (values.length < 2) {
+    if (
+      values.length < 2
+    ) {
       continue;
     }
 
-    /*
-     * Use averages of the first and last 10%
-     * instead of simply comparing the first and
-     * last row. This makes trends more robust
-     * against noisy datasets.
-     */
     const windowSize =
       Math.max(
         1,
@@ -1159,7 +1350,9 @@ function calculateTrends(
       | number
       | null = null;
 
-    if (firstValue !== 0) {
+    if (
+      firstValue !== 0
+    ) {
       changePercentage =
         round(
           ((lastValue -
@@ -1177,7 +1370,8 @@ function calculateTrends(
       'unknown';
 
     if (
-      changePercentage !== null
+      changePercentage !==
+      null
     ) {
       if (
         changePercentage >
@@ -1271,7 +1465,8 @@ function calculateQualityIssues(
     }
 
     if (
-      column.uniqueCount === 1 &&
+      column.uniqueCount ===
+        1 &&
       column.missingCount === 0
     ) {
       issues.push({
@@ -1286,10 +1481,10 @@ function calculateQualityIssues(
     }
 
     if (
-      column.kind ===
-        'categorical' &&
       column.uniqueCount >
-        100
+        100 &&
+      column.kind ===
+        'categorical'
     ) {
       issues.push({
         type:
@@ -1317,7 +1512,9 @@ function calculateQualityIssues(
     }
   }
 
-  if (duplicateRows > 0) {
+  if (
+    duplicateRows > 0
+  ) {
     const duplicatePercentage =
       percentage(
         duplicateRows,
@@ -1359,9 +1556,6 @@ function generateChartCandidates(
   const candidates: ChartCandidate[] =
     [];
 
-  /*
-   * Time series.
-   */
   if (
     dateColumns.length > 0 &&
     numericColumns.length > 0
@@ -1369,19 +1563,17 @@ function generateChartCandidates(
     const dateColumn =
       dateColumns[0];
 
-    const measures =
-      numericColumns.slice(
-        0,
-        3,
-      );
-
     candidates.push({
       type: 'line',
       title:
         'Trend over time',
       dimension:
         dateColumn,
-      measures,
+      measures:
+        numericColumns.slice(
+          0,
+          3,
+        ),
       reason:
         'A date dimension and numeric measures are available, making a time-series visualization appropriate.',
       priority: 100,
@@ -1409,9 +1601,6 @@ function generateChartCandidates(
     }
   }
 
-  /*
-   * Category → measure.
-   */
   if (
     categoricalColumns.length >
       0 &&
@@ -1466,9 +1655,6 @@ function generateChartCandidates(
     }
   }
 
-  /*
-   * Distribution.
-   */
   if (
     numericColumns.length > 0
   ) {
@@ -1503,9 +1689,6 @@ function generateChartCandidates(
     }
   }
 
-  /*
-   * Correlation / relationship.
-   */
   if (
     numericColumns.length >=
     2
@@ -1525,10 +1708,6 @@ function generateChartCandidates(
     });
   }
 
-  /*
-   * Proportion charts should only be recommended when
-   * there is a sensible categorical dimension.
-   */
   if (
     categoricalColumns.length >
       0 &&
@@ -1584,7 +1763,9 @@ function determineStatus(
   status: DatasetAnalysis['status'];
   reason?: string;
 } {
-  if (rows.length === 0) {
+  if (
+    rows.length === 0
+  ) {
     return {
       status:
         'not-analyzable',
@@ -1593,7 +1774,9 @@ function determineStatus(
     };
   }
 
-  if (columns.length === 0) {
+  if (
+    columns.length === 0
+  ) {
     return {
       status:
         'not-analyzable',
@@ -1657,16 +1840,29 @@ function determineStatus(
 /* MAIN ANALYZER                                                              */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Analyze the actual parsed dataset.
+ *
+ * IMPORTANT:
+ * `rows` is intentionally separate from DatasetProfile.
+ *
+ * DatasetProfile contains metadata and a sample.
+ * `rows` contains the complete actual dataset.
+ */
 export function analyzeDatasetStructure(
   profile: DatasetProfile,
+  rows: Record<
+    string,
+    unknown
+  >[],
 ): DatasetAnalysis {
-  const rows =
-    toRows(profile);
+  const actualRows =
+    toRows(rows);
 
   const columnNames =
     getProfileColumns(
       profile,
-      rows,
+      actualRows,
     );
 
   const columns =
@@ -1674,7 +1870,7 @@ export function analyzeDatasetStructure(
       (name) =>
         analyzeColumn(
           name,
-          rows,
+          actualRows,
         ),
     );
 
@@ -1726,9 +1922,6 @@ export function analyzeDatasetStructure(
           column.name,
       );
 
-  /*
-   * Measures are numeric columns with actual variation.
-   */
   const measures =
     columns
       .filter(
@@ -1742,9 +1935,6 @@ export function analyzeDatasetStructure(
           column.name,
       );
 
-  /*
-   * Dimensions are categorical columns plus dates.
-   */
   const dimensions = [
     ...categoricalColumns,
     ...dateColumns,
@@ -1752,26 +1942,26 @@ export function analyzeDatasetStructure(
 
   const duplicateRows =
     countDuplicateRows(
-      rows,
+      actualRows,
     );
 
   const qualityIssues =
     calculateQualityIssues(
-      rows,
+      actualRows,
       columns,
       duplicateRows,
     );
 
   const trends =
     calculateTrends(
-      rows,
+      actualRows,
       dateColumns[0],
       numericColumns,
     );
 
   const correlations =
     calculateCorrelations(
-      rows,
+      actualRows,
       numericColumns,
     );
 
@@ -1785,7 +1975,7 @@ export function analyzeDatasetStructure(
 
   const status =
     determineStatus(
-      rows,
+      actualRows,
       columns,
       numericColumns,
       categoricalColumns,
@@ -1799,7 +1989,8 @@ export function analyzeDatasetStructure(
     reason:
       status.reason,
 
-    rowCount: rows.length,
+    rowCount:
+      actualRows.length,
 
     columnCount:
       columnNames.length,
@@ -1863,13 +2054,6 @@ export function analyzeDatasetStructure(
 /* SAFE SUMMARY FOR THE AI                                                    */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Creates a compact representation that can safely be passed to an LLM.
- *
- * We do NOT send every raw row to the model.
- *
- * The deterministic analyzer calculates the important facts first.
- */
 export function createAnalysisContext(
   analysis: DatasetAnalysis,
 ): string {
@@ -1884,6 +2068,7 @@ export function createAnalysisContext(
       dataset: {
         rows:
           analysis.rowCount,
+
         columns:
           analysis.columnCount,
       },
@@ -1893,16 +2078,22 @@ export function createAnalysisContext(
           (column) => ({
             name:
               column.name,
+
             kind:
               column.kind,
+
             uniqueCount:
               column.uniqueCount,
+
             missingCount:
               column.missingCount,
+
             missingPercentage:
               column.missingPercentage,
+
             sampleValues:
               column.sampleValues,
+
             numeric:
               column.numeric
                 ? {
@@ -1910,57 +2101,92 @@ export function createAnalysisContext(
                       column
                         .numeric
                         .count,
+
                     min:
                       column
                         .numeric
                         .min,
+
                     max:
                       column
                         .numeric
                         .max,
+
                     mean:
                       column
                         .numeric
                         .mean,
+
                     median:
                       column
                         .numeric
                         .median,
+
                     sum:
                       column
                         .numeric
                         .sum,
+
+                    standardDeviation:
+                      column
+                        .numeric
+                        .standardDeviation,
+
+                    uniqueCount:
+                      column
+                        .numeric
+                        .uniqueCount,
                   }
                 : undefined,
+
             categorical:
               column
                 .categorical
                 ? {
+                    count:
+                      column
+                        .categorical
+                        .count,
+
                     uniqueCount:
                       column
                         .categorical
                         .uniqueCount,
+
                     topValues:
                       column
                         .categorical
                         .topValues,
                   }
                 : undefined,
+
             date:
               column.date
                 ? {
+                    count:
+                      column
+                        .date
+                        .count,
+
                     min:
                       column
                         .date
                         .min,
+
                     max:
                       column
                         .date
                         .max,
+
                     spanDays:
                       column
                         .date
                         .spanDays,
+
+                    uniqueCount:
+                      column
+                        .date
+                        .uniqueCount,
                   }
                 : undefined,
           }),
