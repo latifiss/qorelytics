@@ -42,22 +42,24 @@ const SidebarMobile = ({ onClose }: SidebarMobileProps) => {
     pathname === "/profile";
 
   return (
-    <div className='sidebar-scroll-container flex flex-col p-0 w-full h-full pb-3 bg-white dark:bg-[#171b1d] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none'>
-      <div className='flex items-center justify-between px-4 pt-4 pb-2'>
-        <SidebarHeaderMobile />
-        <button 
-          onClick={onClose}
-          className='p-2 hover:opacity-80 transition-opacity mt-3'
-        >
-          <div className="block dark:hidden">
-            <CloseIcon size={32} color='#000000' />
-          </div>
-          <div className="hidden dark:block">
-            <CloseIcon size={32} color='#ffffff' />
-          </div>
-        </button>
+    <div className='sidebar-scroll-container flex flex-col p-0 w-full h-full bg-white dark:bg-[#171b1d] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none'>
+      <div className='sticky top-0 z-50 bg-white dark:bg-[#171b1d]'>
+        <div className='flex items-center justify-between px-4 pt-4 pb-2'>
+          <SidebarHeaderMobile />
+          <button 
+            onClick={onClose}
+            className='p-2 hover:opacity-80 transition-opacity mt-3'
+          >
+            <div className="block dark:hidden">
+              <CloseIcon size={32} color='#000000' />
+            </div>
+            <div className="hidden dark:block">
+              <CloseIcon size={32} color='#ffffff' />
+            </div>
+          </button>
+        </div>
       </div>
-      <div className='flex flex-col gap-2 p-4'>
+      <div className='flex flex-col gap-2 px-4 pb-3'>
         <div className="relative">
           <AnimatePresence>
             {isActive('/') && (
