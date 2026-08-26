@@ -44,10 +44,10 @@ const Footer: React.FC = () => {
     {
       title: 'Compare',
       links: [
-        { label: 'Qorelytics vs ChatGPT', href: '/compare/chatgpt' },
-        { label: 'Qorelytics vs Claude', href: '/compare/claude' },
-        { label: 'Qorelytics vs DeepSeek', href: '/compare/deepseek' },
-        { label: 'Qorelytics vs Perplexity', href: '/compare/perplexity' },
+        { label: 'Qorelytics vs ChatGPT', href: 'http://localhost:3000/blog/qorelytics-vs-chatgpt' },
+        { label: 'Qorelytics vs Claude', href: 'http://localhost:3000/blog/qorelytics-vs-claude' },
+        { label: 'Qorelytics vs DeepSeek', href: 'http://localhost:3000/blog/qorelytics-vs-deepseek' },
+        { label: 'Qorelytics vs Perplexity', href: 'http://localhost:3000/blog/qorelytics-vs-perplexity' },
       ],
     },
     {

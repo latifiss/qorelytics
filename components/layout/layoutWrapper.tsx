@@ -7,51 +7,64 @@ import SidebarWrapper from './sidebarWrapper'
 import Footer from '@/components/layout/footer'
 import CookieBanner from '../ui/cookieBanner'
 
-export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
+export default function LayoutWrapper({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const pathname = usePathname()
-  
+
+  // Blog detail pages: /blog/[slug]
+  const isBlogDetail = pathname.startsWith('/blog/')
+
   // Pages that should not show sidebar
-  const hideSidebar = pathname === '/blog' || 
-                      pathname === '/blog-detail' || 
-                      pathname === '/pricing' || 
-                      pathname === '/login' || 
-                      pathname === '/signin' || 
-                      pathname === '/onboarding' || 
-                      pathname === '/profile' ||
+  const hideSidebar =
+    pathname === '/blog' ||
+    isBlogDetail ||
+    pathname === '/blog-detail' ||
+    pathname === '/pricing' ||
+    pathname === '/login' ||
+    pathname === '/signin' ||
+    pathname === '/onboarding' ||
+    pathname === '/profile' ||
     pathname === '/not-found' ||
-  pathname === '/terms' ||
+    pathname === '/terms' ||
     pathname === '/privacy' ||
     pathname === '/refund-policy' ||
-  pathname === '/cookie' ||
-  pathname === '/about' ||
-  pathname === '/intro' 
+    pathname === '/cookie' ||
+    pathname === '/about' ||
+    pathname === '/intro'
 
   // Pages that should not show header
-  const hideHeader = pathname === '/login' || 
-                     pathname === '/signin' ||
-                     pathname === '/not-found' ||
-                     pathname === '/about' ||
-  pathname === '/intro' 
+  const hideHeader =
+    pathname === '/login' ||
+    pathname === '/signin' ||
+    pathname === '/not-found' ||
+    pathname === '/about' ||
+    pathname === '/intro'
 
   // Pages that should show AltHeader
-  const showAltHeader = pathname === '/blog' || 
-                        pathname === '/blog-detail' || 
-                        pathname === '/pricing' || 
-                        pathname === '/profile' ||
-                        pathname === '/about' ||
-  pathname === '/intro' 
+  const showAltHeader =
+    pathname === '/blog' ||
+    isBlogDetail ||
+    pathname === '/blog-detail' ||
+    pathname === '/pricing' ||
+    pathname === '/profile' ||
+    pathname === '/about' ||
+    pathname === '/intro'
 
   // Pages that should show footer
-  const showFooter = pathname === '/about' || 
-                     pathname === '/blog' || 
-                     pathname === '/blog-detail' || 
+  const showFooter =
+    pathname === '/about' ||
+    pathname === '/blog' ||
+    isBlogDetail ||
+    pathname === '/blog-detail' ||
     pathname === '/pricing' ||
     pathname === '/terms' ||
     pathname === '/privacy' ||
     pathname === '/refund-policy' ||
-  pathname === '/cookie' ||
-  pathname === '/about' ||
-  pathname === '/intro' 
+    pathname === '/cookie' ||
+    pathname === '/intro'
 
   return (
     <div className="flex flex-1 h-full overflow-hidden">
@@ -60,6 +73,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
           <SidebarWrapper />
         </div>
       )}
+
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         <div className="flex-1 overflow-y-auto main-scroll-container scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted hover:scrollbar-thumb-foreground">
           {!hideHeader && (
@@ -75,12 +89,15 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
               )}
             </>
           )}
+
           {children}
+
           {showFooter && <Footer />}
-        <CookieBanner 
-        onAccept={() => console.log('Cookies accepted')}
-        onReject={() => console.log('Cookies rejected')}
-      />
+
+          <CookieBanner
+            onAccept={() => console.log('Cookies accepted')}
+            onReject={() => console.log('Cookies rejected')}
+          />
         </div>
       </div>
     </div>

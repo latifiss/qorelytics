@@ -41,6 +41,7 @@ export default async function BlogPage() {
         min-h-[90vh]
         px-6 
         py-12
+        pb-34
         md:px-10
         lg:px-12
         xl:px-20

@@ -51,7 +51,7 @@ export default async function ArticlePage({
   }
 
   return (
-    <div className="bg-white dark:bg-[#171b1d] min-h-screen">
+    <div className="bg-white dark:bg-[#171b1d] min-h-screen pb-24">
       <ArticleDetail
         title={article.title}
         date={article.publishedAt}
