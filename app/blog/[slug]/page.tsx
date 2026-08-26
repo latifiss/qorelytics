@@ -1,7 +1,7 @@
 import ArticleDetail from '@/components/layout/articleDetail'
-import { client } from "@/sanity/lib/client"
-import { TagType } from "@/components/ui/blogCard"
-import { notFound } from "next/navigation"
+import { client } from '@/sanity/lib/client'
+import { TagType } from '@/components/ui/blogCard'
+import { notFound } from 'next/navigation'
 
 const query = `
   *[_type == "post" && slug.current == $slug][0] {
@@ -56,13 +56,13 @@ export default async function ArticlePage({
         title={article.title}
         date={article.publishedAt}
         imageUrl={article.imageUrl}
-        imageAlt={article.imageAlt ?? "Blog post cover image"}
+        imageAlt={article.imageAlt ?? 'Blog post cover image'}
         tags={article.tags ?? []}
-        author={article.author ?? "Unknown"}
+        author={article.author ?? 'Unknown'}
         authorImage={
-          article.authorImage ?? "/images/default-avatar.svg"
+          article.authorImage ?? '/images/default-avatar.svg'
         }
-        content={article.body as string}
+        content={article.body}
       />
     </div>
   )
