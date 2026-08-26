@@ -4,75 +4,300 @@ import {
   useCallback,
   useRef,
   useState,
-  useMemo,
 } from 'react';
 
 import Input from '@/components/ui/input';
 import AnalystResponse from '@/components/ui/analystResponse';
 import AnalysisProgress from '@/components/ui/analysisProgress';
 import SelectionModal from '@/components/ui/selectionModal';
-
-import { getSampleById } from '@/data/sample';
-
 import {
-  ChartConfig,
-  ChartDataPoint,
-} from '@/components/charts/types/chart.types';
+  buildChartDataFromAnalysis,
+  buildReportSections,
+  getDatasetRows,
+} from '@/lib/analysis/buildAnalysisCharts';
 
 interface HomeClientProps {
   userName?: string;
 }
 
-interface ChatTurn {
-  id: string;
-  userMessage: string;
-  response: string;
-  isFollowUp: boolean;
-  isAnalyzing: boolean;
+/* -------------------------------------------------------------------------- */
+/* TYPES                                                                      */
+/* -------------------------------------------------------------------------- */
+
+interface AnalysisMessage {
+  role: 'user' | 'assistant';
+  content: string;
 }
 
-const sampleResponse = `
-I analyzed your customer sales dataset.
+interface AnalysisChart {
+  type:
+    | 'bar'
+    | 'horizontal-bar'
+    | 'grouped-bar'
+    | 'stacked-bar'
+    | 'line'
+    | 'area'
+    | 'pie'
+    | 'donut'
+    | 'scatter'
+    | 'histogram'
+    | 'box-plot'
+    | 'funnel'
+    | 'waterfall'
+    | 'radar'
+    | 'treemap'
+    | 'gauge'
+    | 'sankey';
 
-The analysis shows strong growth, but there are opportunities to improve customer retention.
+  title: string;
+  description: string;
+  dimensions: string[];
+  measures: string[];
+  reason: string;
+}
 
-Below is the generated analysis report.
-`;
+interface AnalysisSection {
+  title: string;
+  content: string;
+  importance:
+    | 'high'
+    | 'medium'
+    | 'low';
+}
 
-const getFollowUpResponse = () => `
-Thanks for your follow-up.
+interface AnalysisRecommendation {
+  title: string;
+  description: string;
+  priority:
+    | 'high'
+    | 'medium'
+    | 'low';
+}
 
-Based on the analysis so far, retention dips correlate with onboarding friction in weeks 2–3. I'd recommend A/B testing a simplified checkout flow and segmenting cohorts by acquisition channel to isolate the drop-off.
+interface AnalysisResult {
+  status:
+    | 'success'
+    | 'partial'
+    | 'unsupported'
+    | 'insufficient_data';
 
-Happy to dig deeper into any segment or metric.
-`;
+  response: string;
+  summary: string;
+
+  datasetAssessment: {
+    isAnalyzable: boolean;
+    isStructured: boolean;
+    isQuantitative: boolean;
+    confidence: number;
+    explanation: string;
+  };
+
+  sections: AnalysisSection[];
+
+  charts: AnalysisChart[];
+
+  recommendations: AnalysisRecommendation[];
+
+  limitations: string[];
+
+  suggestedFollowUps: string[];
+}
+
+interface DatasetProfile {
+  fileName: string;
+  fileType: string;
+  rowCount: number;
+  columnCount: number;
+  columns: Array<{
+    name: string;
+    type: string;
+    nullable: boolean;
+    uniqueCount: number;
+    missingCount: number;
+    missingPercentage: number;
+    sampleValues: unknown[];
+    min?: number;
+    max?: number;
+    mean?: number;
+    median?: number;
+  }>;
+
+  sampleRows: Record<
+    string,
+    unknown
+  >[];
+
+  preview?: Record<
+    string,
+    unknown
+  >[];
+
+  numericColumns?: string[];
+  categoricalColumns?: string[];
+  dateColumns?: string[];
+
+  [key: string]: unknown;
+}
+
+interface UploadedDataset {
+  id: string;
+  name: string;
+  originalFileName: string;
+  fileType: string;
+  fileSize: number;
+  rowCount: number;
+  columnCount: number;
+  status: string;
+}
+
+interface UploadResponse {
+  dataset: UploadedDataset;
+  profile: DatasetProfile;
+}
+
+interface AnalyzeResponse {
+  analysis: {
+    id: string;
+    datasetId: string;
+    provider: string;
+    model: string;
+    result: AnalysisResult;
+    status: string;
+    startedAt: string;
+    completedAt?: string;
+    createdAt: string;
+  };
+}
+
+interface ChatTurn {
+  id: string;
+
+  userMessage: string;
+
+  response: string;
+
+  isFollowUp: boolean;
+
+  isAnalyzing: boolean;
+
+  result?: AnalysisResult;
+
+  profile?: DatasetProfile;
+}
+
+/* -------------------------------------------------------------------------- */
+/* HELPERS                                                                    */
+/* -------------------------------------------------------------------------- */
+
+function isAnalysisResult(
+  value: unknown,
+): value is AnalysisResult {
+  if (
+    !value ||
+    typeof value !== 'object'
+  ) {
+    return false;
+  }
+
+  const result =
+    value as Record<
+      string,
+      unknown
+    >;
+
+  return (
+    typeof result.response ===
+      'string' &&
+    Array.isArray(
+      result.sections,
+    ) &&
+    Array.isArray(
+      result.charts,
+    )
+  );
+}
+
+async function readJsonResponse<T>(
+  response: Response,
+): Promise<T> {
+  const contentType =
+    response.headers.get(
+      'content-type',
+    );
+
+  if (
+    !contentType?.includes(
+      'application/json',
+    )
+  ) {
+    const text =
+      await response.text();
+
+    throw new Error(
+      text ||
+        `Request failed with status ${response.status}.`,
+    );
+  }
+
+  const body =
+    (await response.json()) as T;
+
+  if (!response.ok) {
+    const errorBody =
+      body as {
+        error?: string;
+        message?: string;
+      };
+
+    throw new Error(
+      errorBody.error ||
+        errorBody.message ||
+        `Request failed with status ${response.status}.`,
+    );
+  }
+
+  return body;
+}
+
+/* -------------------------------------------------------------------------- */
+/* COMPONENT                                                                  */
+/* -------------------------------------------------------------------------- */
 
 export default function Home({
   userName,
 }: HomeClientProps) {
   const scrollRef =
-    useRef<HTMLDivElement | null>(null);
+    useRef<HTMLDivElement | null>(
+      null,
+    );
 
   const bottomRef =
-    useRef<HTMLDivElement | null>(null);
+    useRef<HTMLDivElement | null>(
+      null,
+    );
 
   const userScrolledUpRef =
     useRef(false);
 
   /*
-   * Keeps analysis timers under control.
+   * Current dataset remains active for the whole conversation.
    *
-   * This is important because regeneration should
-   * cancel the previous analysis timer before
-   * starting a new one.
+   * Follow-up questions reuse this dataset.
    */
-  const analysisTimersRef =
-    useRef<
-      Record<
-        string,
-        ReturnType<typeof setTimeout>
-      >
-    >({});
+  const datasetIdRef =
+    useRef<string | null>(
+      null,
+    );
+
+  const datasetProfileRef =
+    useRef<DatasetProfile | null>(
+      null,
+    );
+
+  const conversationRef =
+    useRef<AnalysisMessage[]>(
+      [],
+    );
 
   const [
     isModalOpen,
@@ -82,7 +307,9 @@ export default function Home({
   const [
     turns,
     setTurns,
-  ] = useState<ChatTurn[]>([]);
+  ] = useState<ChatTurn[]>(
+    [],
+  );
 
   const [
     isGenerating,
@@ -92,132 +319,23 @@ export default function Home({
   const [
     activeTurnId,
     setActiveTurnId,
-  ] = useState<string | null>(null);
+  ] = useState<string | null>(
+    null,
+  );
+
+  const [
+    error,
+    setError,
+  ] = useState<string | null>(
+    null,
+  );
 
   const started =
     turns.length > 0;
 
-  /*
-   * ------------------------------------------------------------------------
-   * CHART DATA
-   * ------------------------------------------------------------------------
-   */
-
-  const chartData = useMemo(() => {
-    const sample =
-      getSampleById('time-series');
-
-    if (!sample) {
-      return [];
-    }
-
-    const charts = [];
-
-    const dimensions =
-      sample.config.dimensions;
-
-    const measures =
-      sample.config.measures;
-
-    /*
-     * Chart 0
-     */
-    charts.push({
-      config: {
-        id: `chart-0-${Date.now()}`,
-        type:
-          sample.config
-            .recommendedChart as any,
-        dimensions,
-        measures: [measures[0]],
-        title: `${measures[0]} Trend`,
-        showLegend: true,
-      } as ChartConfig,
-
-      data:
-        sample.data as ChartDataPoint[],
-    });
-
-    /*
-     * Chart 1
-     */
-    if (measures.length > 1) {
-      charts.push({
-        config: {
-          id: `chart-1-${Date.now()}`,
-          type: 'bar' as any,
-          dimensions,
-          measures: [measures[1]],
-          title: `${measures[1]} Distribution`,
-          showLegend: true,
-        } as ChartConfig,
-
-        data:
-          sample.data as ChartDataPoint[],
-      });
-    }
-
-    /*
-     * Chart 2
-     */
-    if (measures.length > 2) {
-      charts.push({
-        config: {
-          id: `chart-2-${Date.now()}`,
-          type: 'area' as any,
-          dimensions,
-          measures:
-            measures.slice(0, 3),
-          title:
-            'Multi-Measure Comparison',
-          showLegend: true,
-        } as ChartConfig,
-
-        data:
-          sample.data as ChartDataPoint[],
-      });
-    }
-
-    /*
-     * Chart 3
-     */
-    const uniqueCategories =
-      new Set(
-        sample.data.map((d) =>
-          String(
-            d[dimensions[0]]
-          )
-        )
-      );
-
-    if (
-      uniqueCategories.size <= 10 &&
-      uniqueCategories.size > 1
-    ) {
-      charts.push({
-        config: {
-          id: `chart-3-${Date.now()}`,
-          type: 'donut' as any,
-          dimensions,
-          measures: [measures[0]],
-          title:
-            `${measures[0]} Breakdown`,
-          showLegend: true,
-        } as ChartConfig,
-
-        data:
-          sample.data as ChartDataPoint[],
-      });
-    }
-
-    return charts;
-  }, []);
-
-  /*
-   * ------------------------------------------------------------------------
-   * SCROLL
-   * ------------------------------------------------------------------------
-   */
+  /* ------------------------------------------------------------------------ */
+  /* SCROLL                                                                   */
+  /* ------------------------------------------------------------------------ */
 
   const scrollToBottom =
     useCallback(() => {
@@ -242,7 +360,7 @@ export default function Home({
             {
               behavior: 'auto',
               block: 'end',
-            }
+            },
           );
         });
       });
@@ -271,137 +389,327 @@ export default function Home({
       scrollToBottom();
     }, [scrollToBottom]);
 
-  /*
-   * ------------------------------------------------------------------------
-   * CLEAR ANALYSIS TIMER
-   * ------------------------------------------------------------------------
-   */
+  /* ------------------------------------------------------------------------ */
+  /* ANALYSIS API                                                             */
+  /* ------------------------------------------------------------------------ */
 
-  const clearAnalysisTimer =
+  const uploadDataset =
     useCallback(
-      (turnId: string) => {
-        const timer =
-          analysisTimersRef.current[
-            turnId
-          ];
+      async (
+        file: File,
+      ): Promise<UploadResponse> => {
+        const formData =
+          new FormData();
 
-        if (timer) {
-          clearTimeout(timer);
+        formData.append(
+          'file',
+          file,
+        );
 
-          delete analysisTimersRef.current[
-            turnId
-          ];
+        formData.append(
+          'name',
+          file.name.replace(
+            /\.[^/.]+$/,
+            '',
+          ),
+        );
+
+        const response =
+          await fetch(
+            '/api/datasets/upload',
+            {
+              method: 'POST',
+              body: formData,
+            },
+          );
+
+        return readJsonResponse<UploadResponse>(
+          response,
+        );
+      },
+      [],
+    );
+
+  const runDatasetAnalysis =
+    useCallback(
+      async ({
+        datasetId,
+        userQuestion,
+        messages,
+      }: {
+        datasetId: string;
+        userQuestion?: string;
+        messages: AnalysisMessage[];
+      }): Promise<AnalyzeResponse> => {
+        const response =
+          await fetch(
+            `/api/datasets/${encodeURIComponent(
+              datasetId,
+            )}/analyze`,
+            {
+              method: 'POST',
+
+              headers: {
+                'Content-Type':
+                  'application/json',
+              },
+
+              body: JSON.stringify({
+                provider:
+                  'openrouter',
+
+                model:
+                  'deepseek/deepseek-chat',
+
+                userQuestion,
+
+                messages,
+              }),
+            },
+          );
+
+        return readJsonResponse<AnalyzeResponse>(
+          response,
+        );
+      },
+      [],
+    );
+
+  /* ------------------------------------------------------------------------ */
+  /* TURN UPDATE                                                              */
+  /* ------------------------------------------------------------------------ */
+
+  const updateTurn =
+    useCallback(
+      (
+        turnId: string,
+        updates: Partial<ChatTurn>,
+      ) => {
+        setTurns((previous) =>
+          previous.map(
+            (turn) =>
+              turn.id === turnId
+                ? {
+                    ...turn,
+                    ...updates,
+                  }
+                : turn,
+          ),
+        );
+      },
+      [],
+    );
+
+  /* ------------------------------------------------------------------------ */
+  /* ANALYSIS                                                                 */
+  /* ------------------------------------------------------------------------ */
+
+  const analyzeTurn =
+    useCallback(
+      async ({
+        turnId,
+        datasetId,
+        question,
+        messages,
+        profile,
+      }: {
+        turnId: string;
+        datasetId: string;
+        question: string;
+        messages: AnalysisMessage[];
+        profile?: DatasetProfile;
+      }) => {
+        try {
+          setError(null);
+
+          setIsGenerating(true);
+
+          setActiveTurnId(
+            turnId,
+          );
+
+          updateTurn(
+            turnId,
+            {
+              isAnalyzing: true,
+            },
+          );
+
+          scrollToBottom();
+
+          const result =
+            await runDatasetAnalysis({
+              datasetId,
+              userQuestion:
+                question,
+              messages,
+            });
+
+          const analysis =
+            result.analysis
+              ?.result;
+
+          if (
+            !isAnalysisResult(
+              analysis,
+            )
+          ) {
+            throw new Error(
+              'The analysis response was invalid.',
+            );
+          }
+
+          /*
+           * Store the real assistant response.
+           */
+          conversationRef.current =
+            [
+              ...conversationRef.current,
+              {
+                role: 'assistant',
+                content:
+                  analysis.response,
+              },
+            ];
+
+          /*
+           * Store the result on the turn.
+           *
+           * AnalystResponse will use the actual
+           * backend sections/charts instead of
+           * the old hard-coded report.
+           */
+          updateTurn(
+            turnId,
+            {
+              response:
+                analysis.response,
+              result: analysis,
+              profile,
+              isAnalyzing: false,
+            },
+          );
+
+          setActiveTurnId(
+            turnId,
+          );
+
+          setIsGenerating(
+            true,
+          );
+
+          scrollToBottom();
+        } catch (analysisError) {
+          console.error(
+            '[HomeClient] Analysis failed:',
+            analysisError,
+          );
+
+          const message =
+            analysisError instanceof
+            Error
+              ? analysisError.message
+              : 'Failed to analyze the dataset.';
+
+          setError(message);
+
+          updateTurn(
+            turnId,
+            {
+              response:
+                'I could not complete the analysis.',
+              isAnalyzing: false,
+            },
+          );
+
+          setActiveTurnId(
+            null,
+          );
+
+          setIsGenerating(
+            false,
+          );
         }
       },
-      []
-    );
-
-  /*
-   * ------------------------------------------------------------------------
-   * FINISH ANALYSIS
-   * ------------------------------------------------------------------------
-   *
-   * This is the bridge between:
-   *
-   * AnalysisProgress
-   *        ↓
-   * AnalystResponse
-   *
-   * Once the analysis phase is complete,
-   * we put the response into the turn.
-   *
-   * AnalystResponse then performs its own
-   * character-by-character streaming.
-   */
-
-  const finishAnalysis =
-    useCallback(
-      (
-        turnId: string,
-        response: string
-      ) => {
-        clearAnalysisTimer(
-          turnId
-        );
-
-        setTurns((prev) =>
-          prev.map((turn) =>
-            turn.id === turnId
-              ? {
-                  ...turn,
-                  response,
-                  isAnalyzing: false,
-                }
-              : turn
-          )
-        );
-
-        setActiveTurnId(
-          turnId
-        );
-
-        setIsGenerating(
-          true
-        );
-
-        scrollToBottom();
-      },
       [
-        clearAnalysisTimer,
+        runDatasetAnalysis,
         scrollToBottom,
-      ]
+        updateTurn,
+      ],
     );
 
-  /*
-   * ------------------------------------------------------------------------
-   * START ANALYSIS
-   * ------------------------------------------------------------------------
-   *
-   * Both initial generation AND regeneration
-   * use this exact same function.
-   *
-   * This is the important part.
-   */
+  /* ------------------------------------------------------------------------ */
+  /* SUBMIT                                                                   */
+  /* ------------------------------------------------------------------------ */
 
-  const startAnalysis =
+  const handleSubmit =
     useCallback(
-      (
-        turnId: string,
-        response: string
+      async (
+        text: string,
+        _mode: string,
+        file?: File,
       ) => {
-        /*
-         * Cancel any existing timer for
-         * this turn first.
-         */
-        clearAnalysisTimer(
-          turnId
-        );
+        if (
+          isGenerating ||
+          (!text.trim() && !file)
+        ) {
+          return;
+        }
+
+        setError(null);
 
         /*
-         * Put the turn back into analysis mode.
+         * --------------------------------------------------------------
+         * INITIAL DATASET
+         * --------------------------------------------------------------
          *
-         * This causes HomeClient to render:
-         *
-         * <AnalysisProgress />
+         * If there is no active dataset, the first request must contain
+         * a file.
          */
-        setTurns((prev) =>
-          prev.map((turn) =>
-            turn.id === turnId
-              ? {
-                  ...turn,
-                  response: '',
-                  isAnalyzing: true,
-                }
-              : turn
-          )
-        );
+        if (
+          !datasetIdRef.current &&
+          !file
+        ) {
+          setError(
+            'Upload a CSV, Excel, or JSON dataset to start an analysis.',
+          );
+
+          return;
+        }
+
+        const question =
+          text.trim() ||
+          `Analyze ${file?.name ?? 'this dataset'}`;
+
+        const isFollowUp =
+          Boolean(
+            datasetIdRef.current,
+          );
+
+        const turnId =
+          crypto.randomUUID();
+
+        /*
+         * Add the user message immediately.
+         */
+        setTurns((previous) => [
+          ...previous,
+          {
+            id: turnId,
+            userMessage:
+              question,
+            response: '',
+            isFollowUp,
+            isAnalyzing: true,
+          },
+        ]);
 
         setActiveTurnId(
-          turnId
+          turnId,
         );
 
         setIsGenerating(
-          true
+          true,
         );
 
         userScrolledUpRef.current =
@@ -409,156 +717,133 @@ export default function Home({
 
         scrollToBottom();
 
-        /*
-         * Same analysis duration as
-         * the original request.
-         */
-        const analysisDuration =
-          7000;
+        try {
+          let datasetId =
+            datasetIdRef.current;
 
-        /*
-         * Wait for the analysis animation
-         * to finish before revealing the
-         * AnalystResponse component.
-         */
-        const timer =
-          setTimeout(() => {
-            finishAnalysis(
-              turnId,
-              response
-            );
-          }, analysisDuration);
+          let profile =
+            datasetProfileRef.current;
 
-        analysisTimersRef.current[
-          turnId
-        ] = timer;
+          /*
+           * ------------------------------------------------------------
+           * FIRST MESSAGE
+           * ------------------------------------------------------------
+           *
+           * Upload the file first.
+           */
+          if (!datasetId) {
+            if (!file) {
+              throw new Error(
+                'A dataset file is required.',
+              );
+            }
+
+            const upload =
+              await uploadDataset(
+                file,
+              );
+
+            datasetId =
+              upload.dataset.id;
+
+            profile =
+              upload.profile;
+
+            datasetIdRef.current =
+              datasetId;
+
+            datasetProfileRef.current =
+              profile;
+          }
+
+          /*
+           * Add the user's message to the conversation BEFORE calling
+           * the analyzer.
+           */
+          const nextMessages =
+            [
+              ...conversationRef.current,
+              {
+                role: 'user' as const,
+                content:
+                  question,
+              },
+            ];
+
+          conversationRef.current =
+            nextMessages;
+
+          await analyzeTurn({
+            turnId,
+            datasetId,
+            question,
+            messages:
+              nextMessages,
+            profile:
+              profile ??
+              undefined,
+          });
+        } catch (submitError) {
+          console.error(
+            '[HomeClient] Submit failed:',
+            submitError,
+          );
+
+          const message =
+            submitError instanceof
+            Error
+              ? submitError.message
+              : 'Something went wrong while submitting your request.';
+
+          setError(message);
+
+          updateTurn(
+            turnId,
+            {
+              response:
+                'I could not process that request.',
+              isAnalyzing: false,
+            },
+          );
+
+          setActiveTurnId(
+            null,
+          );
+
+          setIsGenerating(
+            false,
+          );
+        }
       },
       [
-        clearAnalysisTimer,
-        finishAnalysis,
+        analyzeTurn,
+        isGenerating,
         scrollToBottom,
-      ]
+        updateTurn,
+        uploadDataset,
+      ],
     );
 
-  /*
-   * ------------------------------------------------------------------------
-   * RESPONSE STREAM COMPLETE
-   * ------------------------------------------------------------------------
-   *
-   * This fires after AnalystResponse has
-   * finished typing the response.
-   */
-
-  const handleTurnComplete =
-    useCallback(
-      (turnId: string) => {
-        setActiveTurnId(
-          null
-        );
-
-        setIsGenerating(
-          false
-        );
-
-        scrollToBottom();
-      },
-      [scrollToBottom]
-    );
-
-  /*
-   * ------------------------------------------------------------------------
-   * SUBMIT
-   * ------------------------------------------------------------------------
-   */
-
-  const handleSubmit = (
-    text: string,
-    _mode: string,
-    file?: File
-  ) => {
-    if (
-      (!text && !file) ||
-      isGenerating
-    ) {
-      return;
-    }
-
-    const message =
-      text ||
-      `Analyze ${file?.name}`;
-
-    const isFollowUp =
-      turns.length > 0;
-
-    const newTurnId =
-      crypto.randomUUID();
-
-    const response =
-      isFollowUp
-        ? getFollowUpResponse()
-        : sampleResponse;
-
-    /*
-     * Create the turn immediately
-     * in analyzing state.
-     */
-    setTurns((prev) => [
-      ...prev,
-      {
-        id: newTurnId,
-        userMessage: message,
-        response: '',
-        isFollowUp,
-        isAnalyzing: true,
-      },
-    ]);
-
-    setActiveTurnId(
-      newTurnId
-    );
-
-    setIsGenerating(
-      true
-    );
-
-    userScrolledUpRef.current =
-      false;
-
-    scrollToBottom();
-
-    /*
-     * Start the exact same analysis
-     * process used by regeneration.
-     */
-    startAnalysis(
-      newTurnId,
-      response
-    );
-  };
-
-  /*
-   * ------------------------------------------------------------------------
-   * REGENERATE
-   * ------------------------------------------------------------------------
-   *
-   * This is the missing piece from your
-   * current HomeClient.
-   *
-   * AnalystResponse calls this when the
-   * regenerate button is clicked.
-   */
+  /* ------------------------------------------------------------------------ */
+  /* REGENERATE                                                               */
+  /* ------------------------------------------------------------------------ */
 
   const handleRegenerate =
     useCallback(
-      (turnId: string) => {
-        if (isGenerating) {
+      async (
+        turnId: string,
+      ) => {
+        if (
+          isGenerating ||
+          !datasetIdRef.current
+        ) {
           return;
         }
 
         const turn =
           turns.find(
             (item) =>
-              item.id === turnId
+              item.id === turnId,
           );
 
         if (!turn) {
@@ -566,48 +851,140 @@ export default function Home({
         }
 
         /*
-         * Generate the replacement response.
-         *
-         * For now this uses the same simulated
-         * response. When your real API is connected,
-         * this is where the new API request should
-         * happen.
+         * Regeneration should use the same user question and the same
+         * dataset, but send the conversation again to the backend.
          */
-        const response =
-          turn.isFollowUp
-            ? getFollowUpResponse()
-            : sampleResponse;
+        const question =
+          turn.userMessage;
+
+        const previousMessages =
+          conversationRef.current.filter(
+            (_, index) =>
+              index <
+              conversationRef.current.length -
+                1,
+          );
+
+        const regenerationMessages =
+          [
+            ...previousMessages,
+            {
+              role: 'user' as const,
+              content:
+                question,
+            },
+          ];
 
         /*
-         * IMPORTANT:
-         *
-         * Put the turn back into AnalysisProgress.
+         * Replace the final assistant message if one exists.
          */
-        startAnalysis(
-          turnId,
-          response
+        conversationRef.current =
+          regenerationMessages;
+
+        setError(null);
+
+        setIsGenerating(
+          true,
         );
+
+        setActiveTurnId(
+          turnId,
+        );
+
+        updateTurn(
+          turnId,
+          {
+            response: '',
+            isAnalyzing: true,
+            result: undefined,
+          },
+        );
+
+        userScrolledUpRef.current =
+          false;
+
+        scrollToBottom();
+
+        await analyzeTurn({
+          turnId,
+          datasetId:
+            datasetIdRef.current,
+          question,
+          messages:
+            regenerationMessages,
+          profile:
+            datasetProfileRef.current ??
+            undefined,
+        });
       },
       [
+        analyzeTurn,
         isGenerating,
+        scrollToBottom,
         turns,
-        startAnalysis,
-      ]
+        updateTurn,
+      ],
     );
 
-  /*
-   * ------------------------------------------------------------------------
-   * CLEANUP
-   * ------------------------------------------------------------------------
-   */
+  /* ------------------------------------------------------------------------ */
+  /* STREAM COMPLETE                                                          */
+  /* ------------------------------------------------------------------------ */
+
+  const handleTurnComplete =
+    useCallback(
+      (turnId: string) => {
+        setActiveTurnId(
+          null,
+        );
+
+        setIsGenerating(
+          false,
+        );
+
+        scrollToBottom();
+      },
+      [scrollToBottom],
+    );
+
+  /* ------------------------------------------------------------------------ */
+  /* RESET                                                                    */
+  /* ------------------------------------------------------------------------ */
 
   /*
-   * Note:
-   * If you later want this component to have
-   * explicit unmount cleanup, this can be moved
-   * into a useEffect. The timers are also cleared
-   * whenever the same turn starts a new analysis.
+   * This is intentionally not exposed as a UI button yet.
+   *
+   * It gives us a clean place to reset the conversation when you later
+   * add "New analysis".
    */
+  const resetConversation =
+    useCallback(() => {
+      datasetIdRef.current =
+        null;
+
+      datasetProfileRef.current =
+        null;
+
+      conversationRef.current =
+        [];
+
+      setTurns([]);
+
+      setActiveTurnId(
+        null,
+      );
+
+      setIsGenerating(
+        false,
+      );
+
+      setError(null);
+    }, []);
+
+  void resetConversation;
+
+  /* ------------------------------------------------------------------------ */
+  /* RENDER                                                                   */
+  /* ------------------------------------------------------------------------ */
 
   return (
     <div
@@ -674,7 +1051,7 @@ export default function Home({
                       Hey{' '}
                       {
                         userName.split(
-                          ' '
+                          ' ',
                         )[0]
                       }
                     </span>
@@ -709,6 +1086,26 @@ export default function Home({
             </div>
           )}
 
+          {error && (
+            <div
+              className="
+                mb-6
+                px-4
+                py-3
+                text-sm
+                border
+                border-red-200
+                bg-red-50
+                text-red-700
+                dark:border-red-900/50
+                dark:bg-red-950/20
+                dark:text-red-300
+              "
+            >
+              {error}
+            </div>
+          )}
+
           {started && (
             <div
               className="
@@ -722,6 +1119,40 @@ export default function Home({
                     turn.id ===
                       activeTurnId;
 
+                  const datasetRows =
+                    getDatasetRows(
+                      turn.profile,
+                    );
+
+                  const chartData =
+                    turn.result
+                      ? buildChartDataFromAnalysis(
+                          turn.result
+                            .charts,
+                          datasetRows,
+                        )
+                      : [];
+
+                  const reportSections =
+                    turn.result
+                      ? buildReportSections(
+                          {
+                            sections:
+                              turn.result
+                                .sections,
+                            charts:
+                              turn.result
+                                .charts,
+                            recommendations:
+                              turn.result
+                                .recommendations,
+                            limitations:
+                              turn.result
+                                .limitations,
+                          },
+                        )
+                      : [];
+
                   return (
                     <div
                       key={turn.id}
@@ -729,9 +1160,8 @@ export default function Home({
                         space-y-6
                       "
                     >
-                      {/*
-                       * USER MESSAGE
-                       */}
+                      {/* USER MESSAGE */}
+
                       <div
                         className="
                           w-full
@@ -763,14 +1193,8 @@ export default function Home({
                         </div>
                       </div>
 
-                      {/*
-                       * ANALYSIS PROGRESS
-                       *
-                       * This now appears for BOTH:
-                       *
-                       * 1. Initial generation
-                       * 2. Regeneration
-                       */}
+                      {/* ANALYSIS */}
+
                       {turn.isAnalyzing ? (
                         <div
                           className="
@@ -780,21 +1204,6 @@ export default function Home({
                         >
                           <AnalysisProgress
                             onComplete={() => {
-                              /*
-                               * The parent timer controls
-                               * when the response becomes
-                               * visible.
-                               *
-                               * We intentionally don't
-                               * change the turn here because
-                               * this keeps the analysis
-                               * lifecycle controlled by
-                               * startAnalysis().
-                               */
-                              console.log(
-                                'Analysis animation complete'
-                              );
-
                               scrollToBottom();
                             }}
                             onStreamingUpdate={
@@ -803,15 +1212,8 @@ export default function Home({
                           />
                         </div>
                       ) : (
-                        /*
-                         * ANALYST RESPONSE
-                         *
-                         * Once AnalysisProgress has
-                         * completed, AnalystResponse
-                         * starts its normal character
-                         * streaming animation.
-                         */
                         <AnalystResponse
+                          key={`${turn.id}-${turn.result?.response ?? ''}`}
                           content={
                             turn.response
                           }
@@ -819,19 +1221,24 @@ export default function Home({
                             isActiveTurn
                           }
                           showReport={
-                            true
+                            Boolean(
+                              turn.result,
+                            )
+                          }
+                          reportSections={
+                            reportSections
                           }
                           chartData={
                             chartData
                           }
                           onCopy={() =>
                             console.log(
-                              'copied'
+                              'copied',
                             )
                           }
                           onRegenerate={() =>
                             handleRegenerate(
-                              turn.id
+                              turn.id,
                             )
                           }
                           onStreamingUpdate={
@@ -841,7 +1248,7 @@ export default function Home({
                             isActiveTurn
                               ? () =>
                                   handleTurnComplete(
-                                    turn.id
+                                    turn.id,
                                   )
                               : undefined
                           }
@@ -849,7 +1256,7 @@ export default function Home({
                       )}
                     </div>
                   );
-                }
+                },
               )}
 
               <div
@@ -865,9 +1272,8 @@ export default function Home({
         </div>
       </div>
 
-      {/*
-       * INPUT
-       */}
+      {/* INPUT */}
+
       <div
         className="
           fixed
@@ -903,15 +1309,14 @@ export default function Home({
             placeholder={
               started
                 ? 'Ask a follow-up...'
-                : 'Ask anything...'
+                : 'Upload a dataset and ask anything...'
             }
           />
         </div>
       </div>
 
-      {/*
-       * SELECTION MODAL
-       */}
+      {/* MODAL */}
+
       <SelectionModal
         isOpen={
           isModalOpen

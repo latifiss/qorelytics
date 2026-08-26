@@ -13,11 +13,14 @@ import { FiChevronDown } from 'react-icons/fi';
 import { cn } from '@/lib/cn';
 
 import {
-  reportSections,
+  reportSections as defaultReportSections,
   defaultResponse,
 } from './analysis-data';
 
-import { AnalystResponseProps } from './types';
+import {
+  AnalystResponseProps,
+  ReportSection,
+} from './types';
 
 import {
   CopyIcon,
@@ -64,7 +67,7 @@ const POINT_SIZE = 14;
 let startPointPool: number[] = [];
 let previousStartPoint: number | null = null;
 
-function shufflePointPool() {
+function shufflePointPool(): number[] {
   const pool = pointIcons.map((_, index) => index);
 
   for (let i = pool.length - 1; i > 0; i--) {
@@ -78,6 +81,10 @@ function shufflePointPool() {
     ];
   }
 
+  /*
+   * Prevent the first icon of the new pool from being the same
+   * as the previous response's starting icon.
+   */
   if (
     previousStartPoint !== null &&
     pool.length > 1 &&
@@ -98,12 +105,12 @@ function shufflePointPool() {
   return pool;
 }
 
-function getRandomStartPoint() {
+function getRandomStartPoint(): number {
   if (startPointPool.length === 0) {
     startPointPool = shufflePointPool();
   }
 
-  const nextPoint = startPointPool.shift()!;
+  const nextPoint = startPointPool.shift() ?? 0;
 
   previousStartPoint = nextPoint;
 
@@ -114,11 +121,11 @@ function getRandomStartPoint() {
 /*                              LIST HELPERS                                  */
 /* -------------------------------------------------------------------------- */
 
-const isListItem = (line: string) => {
+const isListItem = (line: string): boolean => {
   return /^\s*(?:[-*•✓]|\d+[.)])\s+/.test(line);
 };
 
-const removeListBullet = (line: string) => {
+const removeListBullet = (line: string): string => {
   return line.replace(
     /^\s*(?:[-*•✓]|\d+[.)])\s+/,
     ''
@@ -130,15 +137,22 @@ const removeListBullet = (line: string) => {
 /* -------------------------------------------------------------------------- */
 
 function createPointAssignments(
-  sections: typeof reportSections,
+  sections: ReportSection[],
   startIndex: number
-) {
+): Record<number, number> {
   const assignments: Record<number, number> = {};
 
-  let currentIndex = startIndex;
+  let currentIndex =
+    ((startIndex % pointIcons.length) +
+      pointIcons.length) %
+    pointIcons.length;
+
   let usedIndices: number[] = [];
 
   sections.forEach((_, sectionIndex) => {
+    /*
+     * Once all point icons have been used, start another cycle.
+     */
     if (usedIndices.length >= pointIcons.length) {
       usedIndices = [];
     }
@@ -178,11 +192,6 @@ interface ChartData {
   data: ChartDataPoint[];
 }
 
-interface ExtendedAnalystResponseProps
-  extends AnalystResponseProps {
-  chartData?: ChartData[];
-}
-
 /* -------------------------------------------------------------------------- */
 /*                           CHART MARKER PARSER                              */
 /* -------------------------------------------------------------------------- */
@@ -196,6 +205,16 @@ function getChartIndex(
     return null;
   }
 
+  /*
+   * Allow chart markers to survive common markdown/code formatting.
+   *
+   * Supported:
+   * [CHART:0]
+   * **[CHART:0]**
+   * __[CHART:0]__
+   * `[CHART:0]`
+   * ```[CHART:0]```
+   */
   normalized = normalized
     .replace(/^```+/, '')
     .replace(/```+$/, '')
@@ -215,7 +234,11 @@ function getChartIndex(
     return null;
   }
 
-  return Number(match[1]);
+  const index = Number(match[1]);
+
+  return Number.isFinite(index)
+    ? index
+    : null;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -259,8 +282,9 @@ function renderInlineMarkdown(
       );
     }
 
-    /* Bold */
-
+    /*
+     * Bold
+     */
     if (match[2] || match[3]) {
       parts.push(
         <strong
@@ -272,8 +296,9 @@ function renderInlineMarkdown(
       );
     }
 
-    /* Inline code */
-
+    /*
+     * Inline code
+     */
     else if (match[4]) {
       parts.push(
         <code
@@ -292,8 +317,11 @@ function renderInlineMarkdown(
       );
     }
 
-    /* Markdown link */
-
+    /*
+     * Markdown link.
+     *
+     * The report UI intentionally displays the link text only.
+     */
     else if (match[5]) {
       parts.push(
         <span
@@ -324,7 +352,7 @@ function renderReportContent(
   chartRefs: React.MutableRefObject<
     Record<number, HTMLDivElement | null>
   >
-) {
+): React.ReactNode[] {
   const lines = content.split('\n');
 
   const PointIcon =
@@ -351,6 +379,10 @@ function renderReportContent(
       const chart =
         chartData?.[chartIndex];
 
+      /*
+       * Never leave the raw marker visible if chart data
+       * is unavailable. This keeps the report UI clean.
+       */
       if (!chart) {
         console.warn(
           `[AnalystResponse] Chart marker [CHART:${chartIndex}] was found, but chartData[${chartIndex}] is unavailable.`,
@@ -416,7 +448,12 @@ function renderReportContent(
       result.push(
         <div
           key={`line-${i}`}
-          className="flex items-start gap-2 py-0.5"
+          className="
+            flex
+            items-start
+            gap-2
+            py-0.5
+          "
         >
           <PointIcon
             size={POINT_SIZE}
@@ -443,6 +480,7 @@ function renderReportContent(
         <div
           key={`empty-${i}`}
           className="h-1"
+          aria-hidden="true"
         />
       );
 
@@ -471,15 +509,15 @@ function renderReportContent(
 /* -------------------------------------------------------------------------- */
 
 /**
- * This is intentionally generated from reportSections only.
+ * The downloadable PDF is generated exclusively from reportSections.
  *
- * The response text, report card header, buttons, etc. are NOT included.
- *
- * This is the actual analysis_report.md content that becomes the PDF.
+ * The streamed assistant response, report card header,
+ * buttons and other UI elements are intentionally excluded.
  */
-
-function buildReportMarkdown() {
-  return reportSections
+function buildReportMarkdown(
+  sections: ReportSection[],
+): string {
+  return sections
     .map((section) => {
       const title =
         section.title.trim();
@@ -498,7 +536,7 @@ function buildReportMarkdown() {
 
 function cleanMarkdownText(
   text: string
-) {
+): string {
   return text
     .replace(
       /\*\*(.*?)\*\*/g,
@@ -665,7 +703,7 @@ function parseMarkdownLine(
 
 function sanitizeCloneForPDF(
   clone: HTMLElement
-) {
+): void {
   const allElements = [
     clone,
     ...Array.from(
@@ -708,14 +746,18 @@ function sanitizeCloneForPDF(
 
           if (
             !value ||
-            value ===
-              'transparent' ||
+            value === 'transparent' ||
             value ===
               'rgba(0, 0, 0, 0)'
           ) {
             return;
           }
 
+          /*
+           * html-to-image can have problems with some
+           * modern CSS color functions. Leave those values
+           * untouched rather than injecting an invalid style.
+           */
           if (
             value.includes('lab(') ||
             value.includes('lch(') ||
@@ -736,7 +778,7 @@ function sanitizeCloneForPDF(
   );
 
   /* ------------------------------------------------------------------------ */
-  /*                        REMOVE ONLY WEB BORDER                            */
+  /*                       REMOVE ONLY WEB BORDER                             */
   /* ------------------------------------------------------------------------ */
 
   const chartContainers =
@@ -779,47 +821,7 @@ function sanitizeCloneForPDF(
   );
 
   /* ------------------------------------------------------------------------ */
-  /*                              ROOT ELEMENT                                */
-  /* ------------------------------------------------------------------------ */
-
-  if (
-    clone.matches(
-      '[data-pdf-hide-border="true"]'
-    )
-  ) {
-    clone.style.setProperty(
-      'border',
-      'none',
-      'important'
-    );
-
-    clone.style.setProperty(
-      'border-width',
-      '0',
-      'important'
-    );
-
-    clone.style.setProperty(
-      'border-style',
-      'none',
-      'important'
-    );
-
-    clone.style.setProperty(
-      'border-color',
-      'transparent',
-      'important'
-    );
-
-    clone.style.setProperty(
-      'box-shadow',
-      'none',
-      'important'
-    );
-  }
-
-  /* ------------------------------------------------------------------------ */
-  /*                            PDF BACKGROUND                                */
+  /*                              PDF ROOT                                    */
   /* ------------------------------------------------------------------------ */
 
   clone.style.setProperty(
@@ -836,29 +838,25 @@ function sanitizeCloneForPDF(
 }
 
 /* -------------------------------------------------------------------------- */
-/*                              CAPTURE CHART                                 */
+/*                             CAPTURE CHART                                 */
 /* -------------------------------------------------------------------------- */
 
 async function captureChart(
   element: HTMLElement
-) {
-  const {
-    toPng,
-  } = await import(
-    'html-to-image'
-  );
+): Promise<string> {
+  const { toPng } =
+    await import(
+      'html-to-image'
+    );
 
-  return await toPng(element, {
+  return toPng(element, {
     cacheBust: true,
     pixelRatio: 2,
     backgroundColor: '#ffffff',
 
-    onClone: (
-      clonedNode
-    ) => {
+    onClone: (clonedNode) => {
       if (
-        clonedNode instanceof
-        HTMLElement
+        clonedNode instanceof HTMLElement
       ) {
         sanitizeCloneForPDF(
           clonedNode
@@ -869,7 +867,7 @@ async function captureChart(
 }
 
 /* -------------------------------------------------------------------------- */
-/*                              PDF EXPORTER                                  */
+/*                             PDF EXPORTER                                  */
 /* -------------------------------------------------------------------------- */
 
 async function exportReportMarkdownToPDF(
@@ -878,7 +876,7 @@ async function exportReportMarkdownToPDF(
     number,
     HTMLDivElement | null
   >
-) {
+): Promise<void> {
   const { jsPDF } =
     await import('jspdf');
 
@@ -932,7 +930,7 @@ async function exportReportMarkdownToPDF(
   };
 
   /* ---------------------------------------------------------------------- */
-  /*                           TEXT RENDERER                                */
+  /*                          TEXT RENDERER                                 */
   /* ---------------------------------------------------------------------- */
 
   const writeWrappedText = (
@@ -1122,7 +1120,7 @@ async function exportReportMarkdownToPDF(
     };
 
   /* ---------------------------------------------------------------------- */
-  /*                            REPORT CONTENT                              */
+  /*                          REPORT CONTENT                                */
   /* ---------------------------------------------------------------------- */
 
   const parsedLines =
@@ -1140,7 +1138,9 @@ async function exportReportMarkdownToPDF(
     const line =
       parsedLines[i];
 
-    /* EMPTY */
+    /* -------------------------------------------------------------------- */
+    /* EMPTY                                                                */
+    /* -------------------------------------------------------------------- */
 
     if (
       line.type ===
@@ -1150,7 +1150,9 @@ async function exportReportMarkdownToPDF(
       continue;
     }
 
-    /* CHART */
+    /* -------------------------------------------------------------------- */
+    /* CHART                                                                */
+    /* -------------------------------------------------------------------- */
 
     if (
       line.type ===
@@ -1168,7 +1170,9 @@ async function exportReportMarkdownToPDF(
       continue;
     }
 
-    /* H1 */
+    /* -------------------------------------------------------------------- */
+    /* H1                                                                   */
+    /* -------------------------------------------------------------------- */
 
     if (
       line.type ===
@@ -1217,7 +1221,9 @@ async function exportReportMarkdownToPDF(
       continue;
     }
 
-    /* H2 */
+    /* -------------------------------------------------------------------- */
+    /* H2                                                                   */
+    /* -------------------------------------------------------------------- */
 
     if (
       line.type ===
@@ -1266,7 +1272,9 @@ async function exportReportMarkdownToPDF(
       continue;
     }
 
-    /* H3 */
+    /* -------------------------------------------------------------------- */
+    /* H3                                                                   */
+    /* -------------------------------------------------------------------- */
 
     if (
       line.type ===
@@ -1315,7 +1323,9 @@ async function exportReportMarkdownToPDF(
       continue;
     }
 
-    /* BULLET */
+    /* -------------------------------------------------------------------- */
+    /* BULLET                                                               */
+    /* -------------------------------------------------------------------- */
 
     if (
       line.type ===
@@ -1344,7 +1354,9 @@ async function exportReportMarkdownToPDF(
       continue;
     }
 
-    /* NUMBER */
+    /* -------------------------------------------------------------------- */
+    /* NUMBER                                                               */
+    /* -------------------------------------------------------------------- */
 
     if (
       line.type ===
@@ -1373,7 +1385,9 @@ async function exportReportMarkdownToPDF(
       continue;
     }
 
-    /* PARAGRAPH */
+    /* -------------------------------------------------------------------- */
+    /* PARAGRAPH                                                            */
+    /* -------------------------------------------------------------------- */
 
     if (
       line.type ===
@@ -1394,8 +1408,6 @@ async function exportReportMarkdownToPDF(
           after: 2,
         }
       );
-
-      continue;
     }
   }
 
@@ -1444,7 +1456,7 @@ async function exportReportMarkdownToPDF(
   }
 
   /* ---------------------------------------------------------------------- */
-  /*                                   SAVE                                 */
+  /*                                  SAVE                                  */
   /* ---------------------------------------------------------------------- */
 
   const now =
@@ -1473,12 +1485,13 @@ export default function AnalystResponse({
   isStreaming = true,
   className,
   showReport = true,
+  reportSections = defaultReportSections,
   chartData,
   onCopy,
   onRegenerate,
   onStreamingComplete,
   onStreamingUpdate,
-}: ExtendedAnalystResponseProps) {
+}: AnalystResponseProps) {
   const [text, setText] =
     useState('');
 
@@ -1502,7 +1515,8 @@ export default function AnalystResponse({
   ] = useState(false);
 
   /*
-   * Forces a complete replay of the response animation.
+   * Forces a complete replay even when
+   * the regenerated response is identical.
    */
   const [
     animationKey,
@@ -1510,13 +1524,10 @@ export default function AnalystResponse({
   ] = useState(0);
 
   /*
-   * IMPORTANT:
+   * Local regenerate state.
    *
-   * After the first response has completed, the parent will normally have
-   * isStreaming=false.
-   *
-   * Regenerate therefore needs its own streaming state so that the response
-   * does NOT immediately render when the regenerate button is pressed.
+   * This is important because the parent may set
+   * isStreaming=false after the first response.
    */
   const [
     isRegenerating,
@@ -1563,6 +1574,12 @@ export default function AnalystResponse({
       null
     );
 
+  /*
+   * Always keep callback refs current.
+   *
+   * This prevents the animation effect from needing
+   * callback props in its dependency list.
+   */
   onStreamingCompleteRef.current =
     onStreamingComplete;
 
@@ -1583,7 +1600,7 @@ export default function AnalystResponse({
   ]);
 
   /* ---------------------------------------------------------------------- */
-  /*                         STREAMING UPDATE                               */
+  /*                         STREAMING UPDATE                                */
   /* ---------------------------------------------------------------------- */
 
   useLayoutEffect(() => {
@@ -1595,22 +1612,19 @@ export default function AnalystResponse({
   ]);
 
   /* ---------------------------------------------------------------------- */
-  /*                              STREAMING                                 */
+  /*                             STREAMING                                  */
   /* ---------------------------------------------------------------------- */
 
   useEffect(() => {
     isMounted.current = true;
 
     const clearTimers = () => {
-      if (
-        timerRef.current
-      ) {
+      if (timerRef.current) {
         clearTimeout(
           timerRef.current
         );
 
-        timerRef.current =
-          null;
+        timerRef.current = null;
       }
 
       timeoutRefs.current.forEach(
@@ -1621,13 +1635,12 @@ export default function AnalystResponse({
         }
       );
 
-      timeoutRefs.current =
-        [];
+      timeoutRefs.current = [];
     };
 
     /*
-     * Every time the response content changes OR animationKey changes,
-     * completely restart the animation.
+     * Every new content value or animationKey
+     * represents a completely new replay.
      */
     clearTimers();
 
@@ -1636,29 +1649,12 @@ export default function AnalystResponse({
     setComplete(false);
 
     /*
-     * ---------------------------------------------------------------
-     * IMPORTANT REGENERATE FIX
-     * ---------------------------------------------------------------
-     *
-     * Normally, when the original response has completed:
-     *
-     *     isStreaming === false
-     *
-     * But after clicking Regenerate we want to stream again.
-     *
-     * Therefore:
-     *
-     *     isStreaming || isRegenerating
-     *
-     * determines whether this run should animate.
+     * When the parent says the response is not streaming
+     * and we aren't locally regenerating, render immediately.
      */
     const shouldStream =
       isStreaming ||
       isRegenerating;
-
-    /* -------------------------------------------------------------------- */
-    /*                         NON STREAMING                                 */
-    /* -------------------------------------------------------------------- */
 
     if (!shouldStream) {
       setText(content);
@@ -1666,10 +1662,12 @@ export default function AnalystResponse({
       setSections(
         showReport
           ? reportSections.map(
-              (_, index) =>
-                index
+              (
+                _,
+                index,
+              ) => index,
             )
-          : []
+          : [],
       );
 
       setComplete(true);
@@ -1685,7 +1683,7 @@ export default function AnalystResponse({
     let charIndex = 0;
 
     /* -------------------------------------------------------------------- */
-    /*                               FINISH                                 */
+    /* FINISH                                                               */
     /* -------------------------------------------------------------------- */
 
     const finishResponse =
@@ -1699,23 +1697,20 @@ export default function AnalystResponse({
         setComplete(true);
 
         /*
-         * The replay is finished.
-         *
-         * Reset this AFTER the animation has completed.
-         *
-         * We intentionally do not include isRegenerating in the effect
-         * dependency list, so changing it here does NOT cause the response
-         * to instantly reset/render again.
+         * Once regeneration finishes, return control
+         * to the normal parent streaming state.
          */
         if (isRegenerating) {
-          setIsRegenerating(false);
+          setIsRegenerating(
+            false
+          );
         }
 
         onStreamingCompleteRef.current?.();
       };
 
     /* -------------------------------------------------------------------- */
-    /*                              SECTIONS                                */
+    /* SECTIONS                                                             */
     /* -------------------------------------------------------------------- */
 
     const revealSections =
@@ -1725,8 +1720,22 @@ export default function AnalystResponse({
           return;
         }
 
+        /*
+         * If there are no sections, finish immediately.
+         */
+        if (
+          reportSections.length ===
+          0
+        ) {
+          finishResponse();
+          return;
+        }
+
         reportSections.forEach(
-          (_, index) => {
+          (
+            _,
+            index,
+          ) => {
             const timeout =
               setTimeout(
                 () => {
@@ -1767,7 +1776,7 @@ export default function AnalystResponse({
       };
 
     /* -------------------------------------------------------------------- */
-    /*                               TYPING                                 */
+    /* TYPING                                                               */
     /* -------------------------------------------------------------------- */
 
     const typeNextChar =
@@ -1806,7 +1815,7 @@ export default function AnalystResponse({
       };
 
     /*
-     * Same initial delay as the original response.
+     * Preserve the existing 100ms initial delay.
      */
     timerRef.current =
       setTimeout(
@@ -1825,6 +1834,7 @@ export default function AnalystResponse({
     isStreaming,
     showReport,
     animationKey,
+    reportSections,
   ]);
 
   /* ---------------------------------------------------------------------- */
@@ -1839,9 +1849,15 @@ export default function AnalystResponse({
       return;
     }
 
+    /*
+     * Copy the actual report markdown rather than
+     * copying the rendered UI.
+     */
     const reportMarkdown =
       showReport
-        ? buildReportMarkdown()
+        ? buildReportMarkdown(
+            reportSections,
+          )
         : '';
 
     const parts: string[] = [];
@@ -1907,11 +1923,8 @@ export default function AnalystResponse({
       }
 
       /*
-       * ---------------------------------------------------------------
-       * STOP CURRENT ANIMATION
-       * ---------------------------------------------------------------
+       * Stop the current response immediately.
        */
-
       if (
         timerRef.current
       ) {
@@ -1919,8 +1932,7 @@ export default function AnalystResponse({
           timerRef.current
         );
 
-        timerRef.current =
-          null;
+        timerRef.current = null;
       }
 
       timeoutRefs.current.forEach(
@@ -1931,48 +1943,29 @@ export default function AnalystResponse({
         }
       );
 
-      timeoutRefs.current =
-        [];
+      timeoutRefs.current = [];
 
       /*
-       * ---------------------------------------------------------------
-       * CLEAR OLD RESPONSE
-       * ---------------------------------------------------------------
+       * Clear the previous response immediately.
        */
-
       setText('');
       setSections([]);
       setComplete(false);
       setCopied(false);
 
       /*
-       * ---------------------------------------------------------------
-       * CLEAR OLD CHART REFERENCES
-       * ---------------------------------------------------------------
+       * The previous chart DOM is no longer valid.
        */
-
       chartRefs.current = {};
 
       /*
-       * ---------------------------------------------------------------
-       * FORCE REPLAY MODE
-       * ---------------------------------------------------------------
-       *
-       * This is the important part.
-       *
-       * Even though the original response has already completed and
-       * isStreaming is probably false, this state tells the streaming
-       * effect that the regenerated response MUST be animated.
+       * Force the next render into replay mode.
        */
       setIsRegenerating(true);
 
       /*
-       * ---------------------------------------------------------------
-       * FORCE THE EFFECT TO RUN AGAIN
-       * ---------------------------------------------------------------
-       *
-       * This also handles the case where the regenerated content is
-       * identical to the previous content.
+       * Even if the new response is identical,
+       * animationKey guarantees a complete replay.
        */
       setAnimationKey(
         (previous) =>
@@ -1980,15 +1973,13 @@ export default function AnalystResponse({
       );
 
       /*
-       * ---------------------------------------------------------------
-       * ASK PARENT FOR NEW RESPONSE
-       * ---------------------------------------------------------------
+       * Ask the parent to produce the new response.
        */
       onRegenerate();
     };
 
   /* ---------------------------------------------------------------------- */
-  /*                              DOWNLOAD                                  */
+  /*                             DOWNLOAD                                   */
   /* ---------------------------------------------------------------------- */
 
   const handleDownloadPDF =
@@ -2006,8 +1997,8 @@ export default function AnalystResponse({
       }
 
       /*
-       * Wait for the final charts to actually exist in the DOM before
-       * capturing them.
+       * Give React two frames to finish rendering
+       * the final report sections/charts.
        */
       await new Promise<void>(
         (resolve) => {
@@ -2025,16 +2016,18 @@ export default function AnalystResponse({
 
       try {
         /*
-         * PDF is generated only from reportSections -> markdown.
+         * The PDF source is always reportSections.
          *
-         * The streamed response/header/buttons are NOT included.
+         * The response/header/buttons are never included.
          */
         const reportMarkdown =
-          buildReportMarkdown();
+          buildReportMarkdown(
+            reportSections,
+          );
 
         await exportReportMarkdownToPDF(
           reportMarkdown,
-          chartRefs.current
+          chartRefs.current,
         );
       } catch (error) {
         console.error(
@@ -2049,7 +2042,7 @@ export default function AnalystResponse({
     };
 
   /* ---------------------------------------------------------------------- */
-  /*                                STATE                                   */
+  /*                               STATE                                    */
   /* ---------------------------------------------------------------------- */
 
   const isTyping =
@@ -2063,9 +2056,12 @@ export default function AnalystResponse({
       () =>
         createPointAssignments(
           reportSections,
-          pointStartIndex
+          pointStartIndex,
         ),
-      [pointStartIndex]
+      [
+        pointStartIndex,
+        reportSections,
+      ],
     );
 
   /* ---------------------------------------------------------------------- */
@@ -2115,6 +2111,7 @@ export default function AnalystResponse({
                   animate-pulse
                   ml-0.5
                 "
+                aria-hidden="true"
               />
             )}
           </>
@@ -2250,7 +2247,7 @@ export default function AnalystResponse({
       {complete && (
         <div className="mt-3 flex items-center gap-0">
           {/* ------------------------------------------------------------ */}
-          {/* COPY                                                          */}
+          {/* COPY                                                           */}
           {/* ------------------------------------------------------------ */}
 
           <button
@@ -2285,7 +2282,7 @@ export default function AnalystResponse({
           </button>
 
           {/* ------------------------------------------------------------ */}
-          {/* REGENERATE                                                    */}
+          {/* REGENERATE                                                     */}
           {/* ------------------------------------------------------------ */}
 
           {onRegenerate && (
@@ -2320,7 +2317,7 @@ export default function AnalystResponse({
           )}
 
           {/* ------------------------------------------------------------ */}
-          {/* DOWNLOAD                                                      */}
+          {/* DOWNLOAD                                                       */}
           {/* ------------------------------------------------------------ */}
 
           <DownloadAs

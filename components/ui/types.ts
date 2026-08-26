@@ -29,6 +29,11 @@ export interface AnalystReport {
 
 
 
+export interface AnalystChartData {
+  config: import('@/components/charts/types/chart.types').ChartConfig;
+  data: import('@/components/charts/types/chart.types').ChartDataPoint[];
+}
+
 export interface AnalystResponseProps {
   content?: string;
 
@@ -59,6 +64,12 @@ export interface AnalystResponseProps {
 
   /** When false, skip the analysis report card (follow-up messages). */
   showReport?: boolean;
+
+  /** Dynamic report sections from the analysis API. */
+  reportSections?: ReportSection[];
+
+  /** Chart configs and dataset rows for [CHART:n] markers. */
+  chartData?: AnalystChartData[];
 }
 
 
