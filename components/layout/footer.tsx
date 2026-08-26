@@ -25,11 +25,10 @@ const Footer: React.FC = () => {
     {
       title: 'Use Cases',
       links: [
-        { label: 'Solo Entrepreneur', href: '/use-cases/solo-entrepreneur' },
-        { label: 'Startups', href: '/use-cases/startups' },
-        { label: 'Agencies', href: '/use-cases/agencies' },
-        { label: 'Enterprise', href: '/use-cases/enterprise' },
-        { label: 'Freelancers', href: '/use-cases/freelancers' },
+        { label: 'Solo Entrepreneur', href: 'http://localhost:3000/blog/data-is-not-just-for-big-companies' },
+        { label: 'Startups', href: 'http://localhost:3000/blog/why-visualization-matters-for-startups' },
+        { label: 'Creators', href: 'http://localhost:3000/blog/building-better-products-starts-with-better-questions' },
+        { label: 'Freelancers', href: 'http://localhost:3000/blog/how-freelancers-can-get-more-from-their-data' },
       ],
     },
     {
