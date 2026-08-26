@@ -1099,3 +1099,13 @@
 
   
 }
+
+/* Add perspective utility if not already present */
+.perspective-\[800px\] {
+  perspective: 800px;
+}
+
+/* For the 3D transform */
+.origin-bottom {
+  transform-origin: bottom;
+}

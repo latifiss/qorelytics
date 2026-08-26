@@ -1,12 +1,29 @@
 "use client";
 
 import Globe from "@/components/ui/3d-globe";
+import { cn } from "@/lib/utils";
 
-export default function GlobeWrapper() {
+interface GlobeWrapperProps {
+  onReady?: () => void;
+  className?: string;
+}
+
+export default function GlobeWrapper({
+  onReady,
+  className,
+}: GlobeWrapperProps) {
   return (
-    <Globe
-      className="w-full h-full"
-      markers={[]}
-    />
+    <div
+      className={cn(
+        "w-full h-full",
+        className,
+      )}
+    >
+      <Globe
+        className="w-full h-full"
+        markers={[]}
+        onReady={onReady}
+      />
+    </div>
   );
 }

@@ -8,6 +8,8 @@ import GlobeWrapper from "@/components/ui/globeWrapper";
 import RotatingText from "@/components/ui/rotatingText";
 import LogoWordmark from "@/public/icons/logo/logoWordmark";
 import { useUser } from "@/hooks/use-user";
+import Faq from "@/components/ui/faq";
+import Plaster from "@/components/ui/plaster";
 
 const stats = [
   {
@@ -244,6 +246,8 @@ export default function IntroPage() {
           </div>
         </div>
       </section>
+      <Plaster/>
+      <Faq/>
     </main>
   );
 }

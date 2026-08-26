@@ -23,12 +23,14 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
     pathname === '/privacy' ||
     pathname === '/refund-policy' ||
   pathname === '/cookie' ||
+  pathname === '/about' ||
   pathname === '/intro' 
 
   // Pages that should not show header
   const hideHeader = pathname === '/login' || 
                      pathname === '/signin' ||
                      pathname === '/not-found' ||
+                     pathname === '/about' ||
   pathname === '/intro' 
 
   // Pages that should show AltHeader
@@ -36,6 +38,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                         pathname === '/blog-detail' || 
                         pathname === '/pricing' || 
                         pathname === '/profile' ||
+                        pathname === '/about' ||
   pathname === '/intro' 
 
   // Pages that should show footer
@@ -47,6 +50,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
     pathname === '/privacy' ||
     pathname === '/refund-policy' ||
   pathname === '/cookie' ||
+  pathname === '/about' ||
   pathname === '/intro' 
 
   return (

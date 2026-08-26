@@ -1,0 +1,22 @@
+[
+  {
+    "question": "What is Qorelytics?",
+    "answer": "Qorelytics is an AI-powered data analyst platform that helps you understand your business data. Simply upload your data files (CSV, Excel, JSON, etc.) and our AI will automatically analyze, visualize, and uncover insights for you."
+  },
+  {
+    "question": "How does the AI analysis work?",
+    "answer": "Our AI analyzes your data structure, detects patterns, identifies trends, and automatically generates the most relevant charts and visualizations. You can also ask follow-up questions and the AI will dig deeper into your data to find the answers."
+  },
+  {
+    "question": "What file formats are supported?",
+    "answer": "Qorelytics supports multiple file formats including CSV, Excel (.xlsx, .xls), JSON, PDF, and Word documents. Simply upload your file and our AI will start analyzing it immediately."
+  },
+  {
+    "question": "Is my data secure and private?",
+    "answer": "Yes, your data is completely secure. We use industry-standard encryption for data in transit and at rest. Your data is only used for analysis within your session and is never shared with third parties."
+  },
+  {
+    "question": "Can I upgrade or cancel my plan anytime?",
+    "answer": "Absolutely! You can upgrade, downgrade, or cancel your subscription at any time from your account settings. Changes to your plan will be reflected in your next billing cycle."
+  }
+]
