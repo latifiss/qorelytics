@@ -47,6 +47,19 @@ export async function GET(
             columnCount: true,
             status: true,
             profile: true,
+            analyses: {
+              where: {
+                status: 'COMPLETED',
+              },
+              orderBy: {
+                createdAt: 'asc',
+              },
+              select: {
+                id: true,
+                result: true,
+                createdAt: true,
+              },
+            },
           },
         },
         messages: {
@@ -66,7 +79,40 @@ export async function GET(
       return NextResponse.json({ error: 'Chat not found.' }, { status: 404 });
     }
 
-    return NextResponse.json({ chat });
+    /*
+     * Older chat messages may not have a persisted `result` because result
+     * persistence was added after those conversations were created. The
+     * corresponding Analysis records still contain the structured result
+     * needed to rebuild charts and reports, so hydrate missing assistant
+     * message results from the dataset's completed analyses in chronological
+     * order. Newer messages keep their own persisted result unchanged.
+     */
+    let assistantAnalysisIndex = 0;
+
+    const messages = chat.messages.map((message) => {
+      if (message.role !== 'ASSISTANT') {
+        return message;
+      }
+
+      const analysis = chat.dataset.analyses[assistantAnalysisIndex];
+      assistantAnalysisIndex += 1;
+
+      if (message.result != null || !analysis?.result) {
+        return message;
+      }
+
+      return {
+        ...message,
+        result: analysis.result,
+      };
+    });
+
+    return NextResponse.json({
+      chat: {
+        ...chat,
+        messages,
+      },
+    });
   } catch (error) {
     console.error('GET /api/chats/[chatId] failed:', error);
 
