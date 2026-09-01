@@ -8,11 +8,15 @@ import { useTheme } from '@/context/themeContext';
 import SidebarMobile from '@/components/ui/sidebarMobile';
 import Logo from '@/public/icons/logo/logo';
 import LogoWordmark from '@/public/icons/logo/logoWordmark';
+import { useChat } from '@/context/chatContext';
+import { useRouter } from 'next/navigation';
 
 const AltHeader = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { theme } = useTheme();
+  const { startNewChat } = useChat();
+  const router = useRouter();
   const isDark = theme === 'dark';
 
   useEffect(() => {
@@ -50,6 +54,11 @@ const AltHeader = () => {
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const handleNewChat = () => {
+    startNewChat();
+    router.push('/');
   };
 
   return (
@@ -120,7 +129,12 @@ const AltHeader = () => {
           </AnimatePresence>
         </div>
 
-        <div className="flex items-center gap-0.5">
+        <button
+          type="button"
+          onClick={handleNewChat}
+          aria-label="New Chat"
+          className="flex items-center gap-0.5 cursor-pointer hover:opacity-80 transition-opacity"
+        >
           <p className="text-xl hidden">New</p>
           <div className="block dark:hidden">
             <PlusIcon size={32} color="#000000" />
@@ -128,7 +142,7 @@ const AltHeader = () => {
           <div className="hidden dark:block">
             <PlusIcon size={32} color="#ffffff" />
           </div>
-        </div>
+        </button>
       </motion.div>
 
       <AnimatePresence>
