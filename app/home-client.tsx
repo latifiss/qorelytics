@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useEffect,
   useRef,
   useState,
 } from 'react';
@@ -10,6 +11,7 @@ import Input from '@/components/ui/input';
 import AnalystResponse from '@/components/ui/analystResponse';
 import AnalysisProgress from '@/components/ui/analysisProgress';
 import SelectionModal from '@/components/ui/selectionModal';
+import { useChat } from '@/context/chatContext';
 import {
   buildChartDataFromAnalysis,
   buildReportSections,
@@ -55,19 +57,13 @@ interface AnalysisChart {
 interface AnalysisSection {
   title: string;
   content: string;
-  importance:
-    | 'high'
-    | 'medium'
-    | 'low';
+  importance: 'high' | 'medium' | 'low';
 }
 
 interface AnalysisRecommendation {
   title: string;
   description: string;
-  priority:
-    | 'high'
-    | 'medium'
-    | 'low';
+  priority: 'high' | 'medium' | 'low';
 }
 
 interface AnalysisResult {
@@ -162,6 +158,32 @@ interface ChatTurn {
   profile?: DatasetProfile;
 }
 
+interface LoadedChatMessage {
+  id: string;
+  role: 'USER' | 'ASSISTANT';
+  content: string;
+  result: unknown;
+  createdAt: string;
+}
+
+interface LoadedChat {
+  id: string;
+  title: string | null;
+  datasetId: string;
+  dataset: {
+    id: string;
+    name: string;
+    originalFileName: string;
+    fileType: string;
+    fileSize: number;
+    rowCount: number;
+    columnCount: number;
+    status: string;
+    profile: unknown;
+  };
+  messages: LoadedChatMessage[];
+}
+
 function isAnalysisResult(value: unknown): value is AnalysisResult {
   if (!value || typeof value !== 'object') {
     return false;
@@ -173,6 +195,21 @@ function isAnalysisResult(value: unknown): value is AnalysisResult {
     typeof result.response === 'string' &&
     Array.isArray(result.sections) &&
     Array.isArray(result.charts)
+  );
+}
+
+function isDatasetProfile(value: unknown): value is DatasetProfile {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const profile = value as Record<string, unknown>;
+
+  return (
+    typeof profile.fileName === 'string' &&
+    typeof profile.fileType === 'string' &&
+    Array.isArray(profile.columns) &&
+    Array.isArray(profile.sampleRows)
   );
 }
 
@@ -206,9 +243,12 @@ async function readJsonResponse<T>(response: Response): Promise<T> {
 }
 
 export default function Home({ userName }: HomeClientProps) {
+  const { selectedChatId } = useChat();
+
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const userScrolledUpRef = useRef(false);
+  const chatLoadVersionRef = useRef(0);
 
   const datasetIdRef = useRef<string | null>(null);
   const datasetProfileRef = useRef<DatasetProfile | null>(null);
@@ -325,6 +365,107 @@ export default function Home({ userName }: HomeClientProps) {
     },
     [],
   );
+
+  const loadChat = useCallback(
+    async (chatId: string) => {
+      const loadVersion = chatLoadVersionRef.current + 1;
+      chatLoadVersionRef.current = loadVersion;
+
+      try {
+        setError(null);
+        setIsGenerating(false);
+        setActiveTurnId(null);
+
+        const response = await fetch(
+          `/api/chats/${encodeURIComponent(chatId)}`,
+          { cache: 'no-store' },
+        );
+
+        const data = await readJsonResponse<{ chat: LoadedChat }>(response);
+
+        if (loadVersion !== chatLoadVersionRef.current) {
+          return;
+        }
+
+        const chat = data.chat;
+        const profile = isDatasetProfile(chat.dataset.profile)
+          ? chat.dataset.profile
+          : undefined;
+
+        datasetIdRef.current = chat.datasetId;
+        datasetProfileRef.current = profile ?? null;
+
+        const loadedTurns: ChatTurn[] = [];
+        const loadedMessages: AnalysisMessage[] = [];
+
+        for (const message of chat.messages) {
+          const role = message.role === 'USER' ? 'user' : 'assistant';
+
+          loadedMessages.push({
+            role,
+            content: message.content,
+          });
+
+          if (message.role === 'USER') {
+            loadedTurns.push({
+              id: message.id,
+              userMessage: message.content,
+              response: '',
+              isFollowUp: loadedTurns.length > 0,
+              isAnalyzing: false,
+            });
+            continue;
+          }
+
+          const turn = loadedTurns[loadedTurns.length - 1];
+
+          if (turn) {
+            turn.response = message.content;
+            turn.result = isAnalysisResult(message.result)
+              ? message.result
+              : undefined;
+            turn.profile = profile;
+          }
+        }
+
+        conversationRef.current = loadedMessages;
+        userScrolledUpRef.current = false;
+        setTurns(loadedTurns);
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (loadVersion !== chatLoadVersionRef.current) {
+              return;
+            }
+
+            if (scrollRef.current) {
+              scrollRef.current.scrollTop = 0;
+            }
+          });
+        });
+      } catch (loadError) {
+        if (loadVersion !== chatLoadVersionRef.current) {
+          return;
+        }
+
+        console.error('[HomeClient] Failed to load chat:', loadError);
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : 'Failed to load this chat.',
+        );
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!selectedChatId) {
+      return;
+    }
+
+    void loadChat(selectedChatId);
+  }, [loadChat, selectedChatId]);
 
   const analyzeTurn = useCallback(
     async ({
@@ -570,6 +711,7 @@ export default function Home({ userName }: HomeClientProps) {
   );
 
   const resetConversation = useCallback(() => {
+    chatLoadVersionRef.current += 1;
     datasetIdRef.current = null;
     datasetProfileRef.current = null;
     conversationRef.current = [];
