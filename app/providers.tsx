@@ -1,6 +1,5 @@
 "use client";
 
-import { useContext } from "react";
 import { ThemeProvider } from "@/context/themeContext";
 import { ChatProvider, useChat } from "@/context/chatContext";
 import LayoutWrapper from "@/components/layout/layoutWrapper";
