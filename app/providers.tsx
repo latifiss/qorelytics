@@ -2,7 +2,6 @@
 
 import { ThemeProvider } from "@/context/themeContext";
 import { ChatProvider, useChat } from "@/context/chatContext";
-import LayoutWrapper from "@/components/layout/layoutWrapper";
 
 function ChatResetBoundary({ children }: { children: React.ReactNode }) {
   const { newChatVersion } = useChat();
@@ -18,9 +17,7 @@ export default function Providers({
   return (
     <ThemeProvider>
       <ChatProvider>
-        <ChatResetBoundary>
-          <LayoutWrapper>{children}</LayoutWrapper>
-        </ChatResetBoundary>
+        <ChatResetBoundary>{children}</ChatResetBoundary>
       </ChatProvider>
     </ThemeProvider>
   );
