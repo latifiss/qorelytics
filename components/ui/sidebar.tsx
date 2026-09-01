@@ -11,11 +11,18 @@ import SidebarHeader from '../layout/sidebarHeader'
 import PointIcon from '@/public/icons/mono/point'
 import Command from '@/components/ui/command'
 import { useUser } from "@/hooks/use-user";
+import { useChat } from '@/context/chatContext';
 
 const Sidebar = () => {
   const pathname = usePathname()
   const router = useRouter()
+  const { startNewChat } = useChat()
   const { user, loading } = useUser();
+
+  const handleNewChat = () => {
+    startNewChat()
+    router.push('/')
+  }
   
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -23,7 +30,7 @@ const Sidebar = () => {
         switch (e.key.toLowerCase()) {
           case 'n':
             e.preventDefault();
-            router.push('/');
+            handleNewChat();
             break;
           case 'p':
             e.preventDefault();
@@ -99,6 +106,7 @@ const Sidebar = () => {
               href='/' 
               variant='internal' 
               type='desktop'
+              onClick={handleNewChat}
               className={isActive('/') ? 'pl-6' : ''}
             />
             <Command label="Ctrl+N" className="shrink-0 ml-2" />
