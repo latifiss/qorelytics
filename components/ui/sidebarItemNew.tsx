@@ -9,7 +9,8 @@ interface SidebarItemNewProps {
   variant?: 'external' | 'internal';
   type?: 'desktop' | 'mobile';
   className?: string;
-  textColor?: string; // Add this prop
+  textColor?: string;
+  onClick?: () => void;
 }
 
 const SidebarItemNew: React.FC<SidebarItemNewProps> = ({
@@ -18,7 +19,8 @@ const SidebarItemNew: React.FC<SidebarItemNewProps> = ({
   variant = 'internal',
   type = 'desktop',
   className = '',
-  textColor, // Add this prop
+  textColor,
+  onClick,
 }) => {
   const isExternal = variant === 'external';
   const isDesktop = type === 'desktop';
@@ -27,7 +29,6 @@ const SidebarItemNew: React.FC<SidebarItemNewProps> = ({
     if (isDesktop) {
       return 'text-[40px] text-neutral-900 dark:text-white';
     } else {
-      // Use textColor prop if provided, otherwise default to white
       return `text-[64px] ${textColor || 'text-white'}`;
     }
   };
@@ -44,13 +45,13 @@ const SidebarItemNew: React.FC<SidebarItemNewProps> = ({
   const getIconColor = () => {
     if (isDesktop) {
       return undefined;
-    } else {
-      // If textColor is 'text-black dark:text-white', use black for light mode
-      if (textColor === 'text-black dark:text-white') {
-        return '#000000';
-      }
-      return '#ffffff';
     }
+
+    if (textColor === 'text-black dark:text-white') {
+      return '#000000';
+    }
+
+    return '#ffffff';
   };
 
   const getIconSize = () => {
@@ -79,9 +80,10 @@ const SidebarItemNew: React.FC<SidebarItemNewProps> = ({
         href={href}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={onClick}
         className={cn(
           'inline-flex items-center transition-opacity hover:opacity-80',
-          className
+          className,
         )}
       >
         {renderContent()}
@@ -92,9 +94,10 @@ const SidebarItemNew: React.FC<SidebarItemNewProps> = ({
   return (
     <Link
       href={href}
+      onClick={onClick}
       className={cn(
         'inline-flex items-center transition-opacity hover:opacity-80 w-full h-24 lg:h-15',
-        className
+        className,
       )}
     >
       {renderContent()}
