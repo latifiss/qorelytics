@@ -208,6 +208,7 @@ model ChatSession {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+  @@index([userId, updatedAt])
 }
 
 model Message {
@@ -218,6 +219,8 @@ model Message {
   role MessageRole
 
   content String
+
+  result Json?
 
   session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
