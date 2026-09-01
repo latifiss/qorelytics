@@ -148,12 +148,19 @@ interface AnalyzeResponse {
   };
 }
 
+interface UserAttachment {
+  name: string;
+  type: string;
+  size: number;
+}
+
 interface ChatTurn {
   id: string;
   userMessage: string;
   response: string;
   isFollowUp: boolean;
   isAnalyzing: boolean;
+  attachment?: UserAttachment;
   result?: AnalysisResult;
   profile?: DatasetProfile;
 }
@@ -210,6 +217,85 @@ function isDatasetProfile(value: unknown): value is DatasetProfile {
     typeof profile.fileType === 'string' &&
     Array.isArray(profile.columns) &&
     Array.isArray(profile.sampleRows)
+  );
+}
+
+function formatFileSize(size: number): string {
+  if (!Number.isFinite(size) || size <= 0) {
+    return '';
+  }
+
+  if (size < 1024) {
+    return `${size} B`;
+  }
+
+  if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function FileIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M14 2.75H6.75A1.75 1.75 0 0 0 5 4.5v15A1.75 1.75 0 0 0 6.75 21h10.5A1.75 1.75 0 0 0 19 19.25V7.75L14 2.75Z"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M14 2.75v5h5"
+      />
+      <path
+        strokeLinecap="round"
+        d="M8.5 13h7M8.5 16.25h5"
+      />
+    </svg>
+  );
+}
+
+function UserMessage({
+  message,
+  attachment,
+}: {
+  message: string;
+  attachment?: UserAttachment;
+}) {
+  return (
+    <div className="w-full flex justify-end">
+      <div className="max-w-[80%] rounded-xl border border-emerald-100/80 bg-emerald-50/60 px-4 py-3 text-sm leading-relaxed text-neutral-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-white">
+        {attachment && (
+          <div className="mb-3 flex items-center gap-3 rounded-lg border border-emerald-100 bg-white/70 px-3 py-2.5 dark:border-emerald-900/40 dark:bg-neutral-900/40">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
+              <FileIcon />
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-xs font-medium text-neutral-900 dark:text-white">
+                {attachment.name}
+              </p>
+              <p className="mt-0.5 text-[11px] text-neutral-500 dark:text-neutral-400">
+                {attachment.type || 'File'}
+                {formatFileSize(attachment.size)
+                  ? ` · ${formatFileSize(attachment.size)}`
+                  : ''}
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="whitespace-pre-wrap">{message}</div>
+      </div>
+    </div>
   );
 }
 
@@ -413,6 +499,14 @@ export default function Home({ userName }: HomeClientProps) {
               response: '',
               isFollowUp: loadedTurns.length > 0,
               isAnalyzing: false,
+              attachment:
+                loadedTurns.length === 0
+                  ? {
+                      name: chat.dataset.originalFileName,
+                      type: chat.dataset.fileType,
+                      size: chat.dataset.fileSize,
+                    }
+                  : undefined,
             });
             continue;
           }
@@ -564,6 +658,13 @@ export default function Home({ userName }: HomeClientProps) {
 
       const isFollowUp = Boolean(datasetIdRef.current);
       const turnId = crypto.randomUUID();
+      const attachment = file
+        ? {
+            name: file.name,
+            type: file.type || 'File',
+            size: file.size,
+          }
+        : undefined;
 
       setTurns((previous) => [
         ...previous,
@@ -573,6 +674,7 @@ export default function Home({ userName }: HomeClientProps) {
           response: '',
           isFollowUp,
           isAnalyzing: true,
+          attachment,
         },
       ]);
 
@@ -814,11 +916,10 @@ export default function Home({ userName }: HomeClientProps) {
 
                 return (
                   <div key={turn.id} className="space-y-6">
-                    <div className="w-full flex justify-end">
-                      <div className="max-w-[80%] px-4 py-3 border border-neutral-200 dark:border-neutral-800 rounded-none text-sm text-neutral-900 dark:text-white leading-relaxed whitespace-pre-wrap bg-neutral-50 dark:bg-neutral-900/50">
-                        {turn.userMessage}
-                      </div>
-                    </div>
+                    <UserMessage
+                      message={turn.userMessage}
+                      attachment={turn.attachment}
+                    />
 
                     {turn.isAnalyzing ? (
                       <div className="w-full max-w-[80%]">
