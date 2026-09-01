@@ -80,6 +80,29 @@ export async function GET(
     }
 
     /*
+     * The persisted dataset profile is produced by profileDataset(), which
+     * stores `preview` rather than the client-side `sampleRows` field and
+     * does not include fileName/fileType. Normalize it here so the existing
+     * chat renderer can use the same profile shape as a freshly uploaded
+     * dataset.
+     */
+    const rawProfile = chat.dataset.profile;
+    const profile =
+      rawProfile && typeof rawProfile === 'object' && !Array.isArray(rawProfile)
+        ? {
+            ...(rawProfile as Record<string, unknown>),
+            fileName: chat.dataset.originalFileName,
+            fileType: chat.dataset.fileType,
+            sampleRows:
+              Array.isArray((rawProfile as Record<string, unknown>).sampleRows)
+                ? (rawProfile as Record<string, unknown>).sampleRows
+                : Array.isArray((rawProfile as Record<string, unknown>).preview)
+                  ? (rawProfile as Record<string, unknown>).preview
+                  : [],
+          }
+        : undefined;
+
+    /*
      * Older chat messages may not have a persisted `result` because result
      * persistence was added after those conversations were created. The
      * corresponding Analysis records still contain the structured result
@@ -110,6 +133,10 @@ export async function GET(
     return NextResponse.json({
       chat: {
         ...chat,
+        dataset: {
+          ...chat.dataset,
+          profile,
+        },
         messages,
       },
     });
