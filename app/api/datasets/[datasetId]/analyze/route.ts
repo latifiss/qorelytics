@@ -48,7 +48,24 @@ export async function POST(request: Request, context: RouteContext) {
     });
 
     try {
-      const result = await runAnalysis({ dataset: datasetProfile, rows: parsedDataset.rows, messages, userQuestion, model });
+      /*
+       * The first request in a conversation is a full analysis.
+       * Follow-ups are conversational questions about that analysis/data.
+       * Keep the existing analyzer and structured result contract, but give
+       * the model an explicit mode so it does not repeat the initial report.
+       */
+      const isFollowUp = messages.length > 1;
+      const analysisQuestion = isFollowUp && userQuestion
+        ? `FOLLOW-UP MODE: Answer only the user's current follow-up question. Use the previous conversation, the original analysis, the deterministic dataset analysis, and the actual dataset as context. Do NOT repeat the original full analysis or recreate its report. Be concise and directly answer the question. Only include a chart if it materially helps answer this specific question; reuse/reference a previous finding or chart when possible. Do not generate multiple charts for a follow-up. Do not restate the dataset overview, limitations, or recommendations unless they are directly relevant to the question.\n\nCURRENT FOLLOW-UP QUESTION:\n${userQuestion}`
+        : userQuestion;
+
+      const result = await runAnalysis({
+        dataset: datasetProfile,
+        rows: parsedDataset.rows,
+        messages,
+        userQuestion: analysisQuestion,
+        model,
+      });
 
       const completedAnalysis = await prisma.analysis.update({
         where: { id: analysis.id },
