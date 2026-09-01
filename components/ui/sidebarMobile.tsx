@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CloseIcon } from '@/public/icons/mono'
 import SidebarItemNew from './sidebarItemNew'
@@ -11,20 +11,16 @@ import SidebarItem from './sidebarItem'
 import SidebarHeaderMobile from '../layout/sidebarHeaderMobile'
 import PointIcon from '@/public/icons/mono/point'
 import { useUser } from "@/hooks/use-user";
+import { useChat } from '@/context/chatContext';
 
 interface SidebarMobileProps {
   onClose: () => void
 }
 
-const user = {
-  name: "John Doe",
-  email: "john@example.com",
-  tier: "pro" as "free" | "pro" | "team",
-  avatar: "/images/default-avatar.svg"
-}
-
 const SidebarMobile = ({ onClose }: SidebarMobileProps) => {
   const pathname = usePathname()
+  const router = useRouter()
+  const { startNewChat } = useChat()
   const { user, loading } = useUser();
 
   if (loading) {
@@ -33,6 +29,12 @@ const SidebarMobile = ({ onClose }: SidebarMobileProps) => {
 
   const isActive = (path: string) => {
     return pathname === path
+  }
+
+  const handleNewChat = () => {
+    startNewChat()
+    onClose()
+    router.push('/')
   }
 
   const authPath = user ? "/profile" : "/signin";
@@ -79,6 +81,7 @@ const SidebarMobile = ({ onClose }: SidebarMobileProps) => {
             href='/' 
             variant='internal' 
             type='mobile'
+            onClick={handleNewChat}
             textColor="text-black dark:text-white"
             className={isActive('/') ? 'pl-6' : ''}
           />
