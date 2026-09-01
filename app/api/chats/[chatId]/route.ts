@@ -36,6 +36,19 @@ export async function GET(
         datasetId: true,
         createdAt: true,
         updatedAt: true,
+        dataset: {
+          select: {
+            id: true,
+            name: true,
+            originalFileName: true,
+            fileType: true,
+            fileSize: true,
+            rowCount: true,
+            columnCount: true,
+            status: true,
+            profile: true,
+          },
+        },
         messages: {
           orderBy: { createdAt: 'asc' },
           select: {
