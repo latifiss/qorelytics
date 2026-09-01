@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/cn';
 
-import { analysisSteps } from './analysis-data';
+import { analysisSteps, followUpSteps } from './analysis-data';
 import { AnalysisProgressProps } from './types';
 
 import Indicator from '@/components/ui/indicator';
@@ -14,12 +14,14 @@ export default function AnalysisProgress({
   className,
   onComplete,
   onStreamingUpdate,
+  mode = 'initial',
 }: AnalysisProgressProps) {
   const [activity, setActivity] = useState<string[]>([]);
   const [progress, setProgress] = useState(0);
 
   const stepRef = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const steps = mode === 'follow-up' ? followUpSteps : analysisSteps;
 
   useEffect(() => {
     stepRef.current = 0;
@@ -27,18 +29,21 @@ export default function AnalysisProgress({
     setProgress(0);
 
     const runAnalysis = () => {
-      if (stepRef.current < analysisSteps.length) {
-        const currentStep = analysisSteps[stepRef.current].message;
+      if (stepRef.current < steps.length) {
+        const currentStep = steps[stepRef.current].message;
 
         setActivity((prev) => [...prev.slice(-4), currentStep]);
 
         setProgress(
-          Math.round(((stepRef.current + 1) / analysisSteps.length) * 100)
+          Math.round(((stepRef.current + 1) / steps.length) * 100)
         );
 
         stepRef.current++;
 
-        timerRef.current = setTimeout(runAnalysis, 700);
+        timerRef.current = setTimeout(
+          runAnalysis,
+          mode === 'follow-up' ? 600 : 700
+        );
       } else {
         onComplete?.();
       }
@@ -51,7 +56,7 @@ export default function AnalysisProgress({
         clearTimeout(timerRef.current);
       }
     };
-  }, [onComplete]);
+  }, [mode, onComplete, steps]);
 
   useEffect(() => {
     onStreamingUpdate?.();
@@ -64,7 +69,7 @@ export default function AnalysisProgress({
       className={cn('space-y-2', className)}
     >
       <div className="flex justify-between text-xs text-neutral-500 dark:text-neutral-400">
-        <span>Analyzing data...</span>
+        <span>{mode === 'follow-up' ? 'Thinking...' : 'Analyzing data...'}</span>
         <span>{progress}%</span>
       </div>
 
