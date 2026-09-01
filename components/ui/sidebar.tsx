@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react'
-import { usePathname } from 'next/navigation'
+import React, { useEffect } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import SidebarItemNew from './sidebarItemNew'
 import SidebarItemAccordion from './sidebarItemAccordion'
@@ -14,10 +14,44 @@ import { useUser } from "@/hooks/use-user";
 
 const Sidebar = () => {
   const pathname = usePathname()
+  const router = useRouter()
   const { user, loading } = useUser();
   
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key.toLowerCase()) {
+          case 'n':
+            e.preventDefault();
+            router.push('/');
+            break;
+          case 'p':
+            e.preventDefault();
+            router.push('/pricing');
+            break;
+          case 'b':
+            e.preventDefault();
+            router.push('/blog');
+            break;
+          case 'a':
+            e.preventDefault();
+            router.push('/about');
+            break;
+          default:
+            break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [router]);
+
   if (loading) {
-    return null;
+    return (
+      <div className="w-80 h-full bg-white dark:bg-[#171b1d]">
+      </div>
+    );
   }
   
   const isActive = (path: string) => {
@@ -30,11 +64,9 @@ const Sidebar = () => {
     pathname === "/signin" ||
     pathname === "/profile";
 
-  // Get avatar from user object - check multiple possible property names
   const getUserAvatar = () => {
     if (!user) return "/images/default-avatar.svg";
     
-    // Check various possible avatar field names
     return user.image 
       || user.avatar 
       || user.photoURL 
@@ -99,7 +131,6 @@ const Sidebar = () => {
               onToggle={(isOpen) => console.log('Accordion is', isOpen ? 'open' : 'closed')}
               className={isActive('/chats') ? 'pl-6' : ''}
             />
-            <Command label="Ctrl+F" className="shrink-0 ml-2" />
           </div>
         </div>
 

@@ -16,17 +16,17 @@ const SignupPage = () => {
   const stories = [
     {
       image:
-        "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&auto=format&fit=crop&q=60",
+        "/images/parta.jpg",
       alt: "Story 1",
     },
     {
       image:
-        "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=60",
+        "/images/partb.jpg",
       alt: "Story 2",
     },
     {
       image:
-        "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=800&auto=format&fit=crop&q=60",
+        "/images/partc.jpg",
       alt: "Story 3",
     },
   ];
@@ -131,7 +131,7 @@ const SignupPage = () => {
           </h1>
 
           <p className="text-neutral-600 dark:text-neutral-400 text-center">
-            Sign up to get started with our platform
+            Sign up to get started with qorelytics and explore the world of data analytics with ease.
           </p>
 
           <div className="flex flex-col gap-3 w-full mt-6">
@@ -141,11 +141,11 @@ const SignupPage = () => {
               className="w-full"
             />
 
-            <SocialButton
+            {/* <SocialButton
               type="facebook"
               onClick={() => handleSocialLogin("facebook")}
               className="w-full"
-            />
+            /> */}
           </div>
 
           <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-4">
