@@ -273,7 +273,7 @@ function UserMessage({
 }) {
   return (
     <div className="w-full flex justify-end">
-      <div className="max-w-[80%] rounded-xl border border-emerald-100/80 bg-emerald-50/60 px-4 py-3 text-sm leading-relaxed text-neutral-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-white">
+      <div className="max-w-[80%] rounded-xl border border-emerald-100/80 bg-emerald-50/60 px-4 py-3 text-sm leading-relaxed text-neutral-900 shadow-[0_2px_0_rgba(16,185,129,0.12),0_3px_8px_rgba(15,23,42,0.06)] dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-white dark:shadow-[0_2px_0_rgba(52,211,153,0.10),0_3px_8px_rgba(0,0,0,0.12)]">
         {attachment && (
           <div className="mb-3 flex items-center gap-3 rounded-lg border border-emerald-100 bg-white/70 px-3 py-2.5 dark:border-emerald-900/40 dark:bg-neutral-900/40">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
