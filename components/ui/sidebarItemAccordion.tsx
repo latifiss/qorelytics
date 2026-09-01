@@ -17,6 +17,7 @@ interface SidebarItemAccordionProps {
   }>;
   type?: 'desktop' | 'mobile';
   className?: string;
+  textColor?: string;
   onToggle?: (isOpen: boolean) => void;
 }
 
@@ -25,6 +26,7 @@ const SidebarItemAccordion: React.FC<SidebarItemAccordionProps> = ({
   items = [],
   type = 'desktop',
   className = '',
+  textColor,
   onToggle,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -35,34 +37,45 @@ const SidebarItemAccordion: React.FC<SidebarItemAccordionProps> = ({
 
   const getTextStyles = () =>
     isDesktop
-      ? 'text-[40px] text-foreground leading-none'
-      : 'text-[64px] text-white leading-none';
+      ? 'text-[40px] text-neutral-900 dark:text-white leading-none'
+      : `text-[64px] ${textColor || 'text-white'} leading-none`;
 
-  const getIconColor = () =>
-    isDesktop ? 'var(--text-primary)' : '#ffffff';
+  const getIconColor = () => {
+    if (!isDesktop) {
+      if (textColor === 'text-black dark:text-white') {
+        return '#000000';
+      }
+      return '#ffffff';
+    }
+    return undefined;
+  };
 
   const getIconSize = () => 40;
 
   const getChildTextStyles = () =>
     isDesktop
-      ? 'text-[30px] text-foreground'
-      : 'text-[30px] text-white';
+      ? 'text-[30px] text-neutral-900 dark:text-white'
+      : `text-[30px] ${textColor || 'text-white'}`;
 
   const getChildIconStyles = () =>
     isDesktop
-      ? 'ml-2 text-foreground'
-      : 'ml-2 text-white';
+      ? 'ml-2 text-neutral-900 dark:text-white'
+      : `ml-2 ${textColor || 'text-white'}`;
 
-  const getChildIconColor = () =>
-    isDesktop ? 'var(--text-primary)' : '#ffffff';
+  const getChildIconColor = () => {
+    if (!isDesktop) {
+      if (textColor === 'text-black dark:text-white') {
+        return '#000000';
+      }
+      return '#ffffff';
+    }
+    return undefined;
+  };
 
   const getChildIconSize = () => 32;
 
   useEffect(() => {
     if (isOpen && !hasLoaded && items.length > 0) {
-      // Schedule setting loading state asynchronously to avoid
-      // synchronous setState inside the effect body which can
-      // trigger cascading renders. Use a microtask timeout.
       const startTimer = setTimeout(() => setIsLoading(true), 0);
 
       const timer = setTimeout(() => {
@@ -175,9 +188,9 @@ const SidebarItemAccordion: React.FC<SidebarItemAccordionProps> = ({
       <button
         onClick={handleToggle}
         className={cn(
-            'flex w-full items-center justify-start gap-6 text-left hover:opacity-80 transition-opacity h-24 lg:h-auto',
-            className
-         )}
+          'flex w-full items-center justify-start gap-6 text-left hover:opacity-80 transition-opacity h-24 lg:h-auto',
+          className
+        )}
       >
         <motion.span
           className={cn(
@@ -227,11 +240,20 @@ const SidebarItemAccordion: React.FC<SidebarItemAccordionProps> = ({
                   ease: customEase,
                 } as Transition}
               >
-                <UpIcon
-                  size={getIconSize()}
-                                  color={getIconColor()}
-                                  className="-ml-4 mt-6"
-                />
+                <div className="block dark:hidden">
+                  <UpIcon
+                    size={getIconSize()}
+                    color="#000000"
+                    className="-ml-4 mt-6"
+                  />
+                </div>
+                <div className="hidden dark:block">
+                  <UpIcon
+                    size={getIconSize()}
+                    color="#ffffff"
+                    className="-ml-4 mt-6"
+                  />
+                </div>
               </motion.div>
             ) : (
               <motion.div
@@ -256,11 +278,20 @@ const SidebarItemAccordion: React.FC<SidebarItemAccordionProps> = ({
                   ease: customEase,
                 } as Transition}
               >
-                <DownIcon
-                  size={getIconSize()}
-                  color={getIconColor()}
-                  className="-ml-4 mt-6"
-                />
+                <div className="block dark:hidden">
+                  <DownIcon
+                    size={getIconSize()}
+                    color="#000000"
+                    className="-ml-4 mt-6"
+                  />
+                </div>
+                <div className="hidden dark:block">
+                  <DownIcon
+                    size={getIconSize()}
+                    color="#ffffff"
+                    className="-ml-4 mt-6"
+                  />
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

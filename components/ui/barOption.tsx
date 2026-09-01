@@ -39,13 +39,6 @@ const BarOption: React.FC<BarOptionProps> = ({
     }
   };
 
-  const getIconContainerStyles = () => {
-    if (variant === 'grid') {
-      return `flex-shrink-0 flex items-center justify-center`;
-    }
-    return 'flex-shrink-0';
-  };
-
   const getIconWrapperStyles = () => {
     if (variant === 'grid') {
       return `flex-shrink-0 flex items-center justify-center`;
@@ -56,13 +49,13 @@ const BarOption: React.FC<BarOptionProps> = ({
   const getLabelStyles = () => {
     switch (variant) {
       case 'default':
-        return 'text-foreground whitespace-nowrap';
+        return 'text-neutral-900 dark:text-white whitespace-nowrap';
       case 'flat':
-        return 'text-foreground whitespace-nowrap';
+        return 'text-neutral-900 dark:text-white whitespace-nowrap';
       case 'grid':
-        return 'text-foreground text-sm whitespace-nowrap';
+        return 'text-neutral-900 dark:text-white text-sm whitespace-nowrap';
       default:
-        return 'text-foreground whitespace-nowrap';
+        return 'text-neutral-900 dark:text-white whitespace-nowrap';
     }
   };
 
@@ -87,8 +80,8 @@ const BarOption: React.FC<BarOptionProps> = ({
       className={cn(
         getContainerStyles(),
         selected
-          ? 'border-black bg-black/5 dark:border-white dark:bg-white/10'
-          : 'border-subtle hover:border-border hover:bg-fill-alpha-subtle',
+          ? 'border-black dark:border-white bg-black/5 dark:bg-white/10'
+          : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-900/50',
         variant === 'grid' && 'min-h-12',
         className
       )}

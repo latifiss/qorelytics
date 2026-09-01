@@ -11,7 +11,9 @@ const PriceFeatureRow = ({ icon, label }: PriceFeatureRowProps) => {
       <div className="flex items-center justify-start">
         {icon}
       </div>
-      <span className="text-[18px] text-foreground">{label}</span>
+      <span className="text-[18px] text-neutral-900 dark:text-white">
+        {label}
+      </span>
     </div>
   )
 }

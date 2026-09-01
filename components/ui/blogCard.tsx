@@ -44,7 +44,7 @@ const Tag = ({ type }: { type: TagType }) => {
   const config = TAG_CONFIG[type]
 
   return (
-    <span className={`flex items-center justify-center text-xs font-medium text-black py-1 px-2 rounded-lg h-7 tablet:h-[25px] mobile:h-[25px] ${config.colorClass}`}>
+    <span className={`flex items-center justify-center text-xs font-medium text-black dark:text-white py-1 px-2 rounded-lg h-7 tablet:h-[25px] mobile:h-[25px] ${config.colorClass}`}>
       {config.label}
     </span>
   )
@@ -108,16 +108,21 @@ const BlogCard = ({
 
         <div className='flex flex-col items-start gap-4.75 tablet:gap-5 mobile:gap-4 w-full'>
 
-          <h2 className='text-4xl font-regular text-black leading-tight line-clamp-3 tablet:text-2xl mobile:text-[25px]'>
+          <h2 className='text-4xl font-regular text-black dark:text-white leading-tight line-clamp-3 tablet:text-2xl mobile:text-[25px]'>
             {title}
           </h2>
 
 
           <div className='flex items-center justify-start gap-1'>
-            <ClockIcon size={18} color='#13151B' />
+            <div className="block dark:hidden">
+              <ClockIcon size={18} color='#13151B' />
+            </div>
+            <div className="hidden dark:block">
+              <ClockIcon size={18} color='#ffffff' />
+            </div>
 
             <time 
-              className='text-md font-regular text-black tablet:text-sm mobile:text-sm' 
+              className='text-md font-regular text-black dark:text-white tablet:text-sm mobile:text-sm' 
               dateTime={date}
             >
               {formattedDate}

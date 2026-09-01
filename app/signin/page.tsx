@@ -16,17 +16,17 @@ const SignupPage = () => {
   const stories = [
     {
       image:
-        "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&auto=format&fit=crop&q=60",
+        "/images/parta.jpg",
       alt: "Story 1",
     },
     {
       image:
-        "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=60",
+        "/images/partb.jpg",
       alt: "Story 2",
     },
     {
       image:
-        "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=800&auto=format&fit=crop&q=60",
+        "/images/partc.jpg",
       alt: "Story 3",
     },
   ];
@@ -99,27 +99,39 @@ const SignupPage = () => {
   };
 
   return (
-    <div className="flex h-screen w-full">
+    <div className="flex h-screen w-full bg-white dark:bg-[#171b1d]">
       {/* Left */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-white p-12 relative">
+      <div className="flex-1 flex flex-col items-center justify-center p-12 relative">
         <div className="flex items-center mb-12">
-          <Image
-            src="/images/logo/logo-wordmark.svg"
-            alt="Logo"
-            width={160}
-            height={40}
-            className="w-40 h-10"
-            priority
-          />
+          <div className="block dark:hidden">
+            <Image
+              src="/images/logo/logo-wordmark.svg"
+              alt="Logo"
+              width={160}
+              height={40}
+              className="w-40 h-10"
+              priority
+            />
+          </div>
+          <div className="hidden dark:block">
+            <Image
+              src="/images/logo/logo-wordmark-white.svg"
+              alt="Logo"
+              width={160}
+              height={40}
+              className="w-40 h-10"
+              priority
+            />
+          </div>
         </div>
 
         <div className="flex flex-col items-center justify-center gap-6 max-w-sm w-full">
-          <h1 className="text-3xl font-bold text-black">
+          <h1 className="text-3xl font-bold text-neutral-900 dark:text-white">
             Create your account
           </h1>
 
-          <p className="text-gray-600 text-center">
-            Sign up to get started with our platform
+          <p className="text-neutral-600 dark:text-neutral-400 text-center">
+            Sign up to get started with qorelytics and explore the world of data analytics with ease.
           </p>
 
           <div className="flex flex-col gap-3 w-full mt-6">
@@ -129,18 +141,18 @@ const SignupPage = () => {
               className="w-full"
             />
 
-            <SocialButton
+            {/* <SocialButton
               type="facebook"
               onClick={() => handleSocialLogin("facebook")}
               className="w-full"
-            />
+            /> */}
           </div>
 
-          <p className="text-sm text-gray-500 mt-4">
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-4">
             Already have an account?{" "}
             <a
               href="/login"
-              className="text-black font-medium hover:underline"
+              className="text-neutral-900 dark:text-white font-medium hover:underline"
             >
               Login instead
             </a>

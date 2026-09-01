@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import path from "path/win32";
+import path from "path";
 
 const nextConfig: NextConfig = {
   images: {
@@ -23,7 +23,22 @@ const nextConfig: NextConfig = {
     ],
     unoptimized: true,
   },
-    turbopack: {
+
+  async headers() {
+    return [
+      {
+        source: "/textures/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+    ];
+  },
+
+  turbopack: {
     root: path.join(__dirname),
   },
 };

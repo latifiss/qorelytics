@@ -1,5 +1,3 @@
-// index.ts
-
 export { default as PricingIcon } from './pricing'
 export { default as LoginIcon } from './login'
 export { default as ScanIcon } from './scan'
@@ -24,3 +22,6 @@ export { default as ArrowTopLeftIcon } from './arrowTopLeft'
 export { default as ArrowTopRightIcon } from './arrowTopRight'
 
 export { default as HamburgerMenuIcon } from './hamburger'
+export { default as SearchIcon } from './search'
+export { default as CopyIcon } from './copy'
+export { default as RefreshIcon } from './refresh'

@@ -30,9 +30,9 @@ const SocialButton = ({ type, onClick, className = '' }: SocialButtonProps) => {
   const getBackgroundColor = () => {
     switch (type) {
       case 'google':
-        return 'bg-white hover:bg-gray-50 border border-gray-300'
+        return 'bg-white dark:bg-[#22282b] hover:bg-gray-50 dark:hover:bg-[#323a3f] border border-gray-300 dark:border-neutral-700'
       case 'apple':
-        return 'bg-black hover:bg-gray-900 text-white'
+        return 'bg-black dark:bg-white hover:bg-gray-900 dark:hover:bg-gray-200 text-white dark:text-black'
       case 'facebook':
         return 'bg-[#1877F2] hover:bg-[#1666D0] text-white'
       case 'tiktok':
@@ -40,16 +40,16 @@ const SocialButton = ({ type, onClick, className = '' }: SocialButtonProps) => {
       case 'x':
         return 'bg-[#000000] hover:bg-[#1a1a1a] text-white'
       default:
-        return 'bg-gray-100 hover:bg-gray-200'
+        return 'bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700'
     }
   }
 
   const getIconColor = () => {
     switch (type) {
       case 'google':
-        return 'text-black'
+        return 'text-black dark:text-white'
       case 'apple':
-        return 'text-white'
+        return 'text-white dark:text-black'
       case 'facebook':
         return 'text-white'
       case 'tiktok':
@@ -57,7 +57,7 @@ const SocialButton = ({ type, onClick, className = '' }: SocialButtonProps) => {
       case 'x':
         return 'text-white'
       default:
-        return 'text-black'
+        return 'text-black dark:text-white'
     }
   }
 
@@ -99,7 +99,7 @@ const SocialButton = ({ type, onClick, className = '' }: SocialButtonProps) => {
           className='object-contain'
         />
       </div>
-      <span className='text-lg font-normal font-text'>Continue with {getLabel()}</span>
+      <span className='text-lg font-normal font-text'>{getLabel()}</span>
     </button>
   )
 }

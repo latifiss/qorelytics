@@ -95,7 +95,6 @@ export default function Response({
     onCopy?.();
   };
 
-  // User message - aligned right (question)
   if (isUser) {
     return (
       <motion.div
@@ -103,8 +102,8 @@ export default function Response({
         animate={{ opacity: 1, x: 0 }}
         className={cn("w-full flex justify-end", className)}
       >
-        <div className="max-w-[80%] border border-subtle px-4 py-3" style={{ backgroundColor: 'var(--fill-alpha-subtle)' }}>
-          <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+        <div className="max-w-[80%] border border-neutral-200 dark:border-neutral-800 px-4 py-3 bg-neutral-50 dark:bg-neutral-900/50">
+          <div className="text-sm text-neutral-900 dark:text-white leading-relaxed whitespace-pre-wrap">
             {content}
           </div>
         </div>
@@ -112,7 +111,6 @@ export default function Response({
     );
   }
 
-  // Assistant message - aligned left (response)
   return (
     <motion.div
       initial={{ opacity: 0, x: -10 }}
@@ -125,12 +123,12 @@ export default function Response({
             <button
               onClick={copy}
               disabled={!content}
-              className="p-1.5 hover:bg-fill-alpha-subtle disabled:opacity-50"
+              className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 rounded transition-colors"
             >
               {copied ? (
-                <FiCheck size={14} color="var(--status-success)" />
+                <FiCheck size={14} className="text-green-600 dark:text-green-400" />
               ) : (
-                <FiCopy size={14} color="var(--text-secondary)" />
+                <FiCopy size={14} className="text-neutral-600 dark:text-neutral-400" />
               )}
             </button>
 
@@ -138,39 +136,38 @@ export default function Response({
               <button
                 onClick={onDownload}
                 disabled={!content}
-                className="p-1.5 hover:bg-fill-alpha-subtle disabled:opacity-50"
+                className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 rounded transition-colors"
               >
-                <FiDownload size={14} color="var(--text-secondary)" />
+                <FiDownload size={14} className="text-neutral-600 dark:text-neutral-400" />
               </button>
             )}
 
             {onRegenerate && (
               <button
                 onClick={onRegenerate}
-                className="p-1.5 hover:bg-fill-alpha-subtle"
+                className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors"
               >
-                <FiRefreshCw size={14} color="var(--text-secondary)" />
+                <FiRefreshCw size={14} className="text-neutral-600 dark:text-neutral-400" />
               </button>
             )}
           </div>
         )}
 
         {isAssistant && !showResponse && (
-          <div className="space-y-3 bg-fill-alpha-subtle border border-subtle px-4 py-3">
-            <div className="flex justify-between text-xs text-muted">
+          <div className="space-y-3 bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 px-4 py-3">
+            <div className="flex justify-between text-xs text-neutral-500 dark:text-neutral-400">
               <span>Thinking...</span>
               <span>{progress}%</span>
             </div>
 
-            <div className="h-1 bg-fill-alpha-subtle overflow-hidden">
+            <div className="h-1 bg-neutral-200 dark:bg-neutral-700 overflow-hidden rounded-full">
               <motion.div
                 animate={{ width: `${progress}%` }}
-                className="h-full"
-                style={{ background: "#7FF86C" }}
+                className="h-full bg-[#7FF86C]"
               />
             </div>
 
-            <div className="space-y-1 text-xs font-mono text-muted">
+            <div className="space-y-1 text-xs font-mono text-neutral-600 dark:text-neutral-400">
               {activity.map((item, index) => (
                 <motion.div
                   key={index}
@@ -195,22 +192,19 @@ export default function Response({
         {showResponse && content && (
           <>
             <div className="relative">
-              {/* Green offset shadow */}
               <div className="absolute -bottom-1 -right-1 w-full h-full border border-[#7FF86C] bg-[#7FF86C]/30" />
               
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35 }}
-                className="relative text-sm text-black dark:text-black leading-relaxed whitespace-pre-wrap bg-white dark:bg-white border border-subtle px-4 py-3"
-                style={{ color: '#000000' }}
+                className="relative text-sm leading-relaxed whitespace-pre-wrap bg-white dark:bg-[#22282b] border border-neutral-200 dark:border-neutral-800 px-4 py-3 text-neutral-900 dark:text-white"
               >
                 {content}
               </motion.div>
             </div>
 
-            {/* Analysis complete - shown below response */}
-            <div className="mt-2 flex items-center gap-2 text-[10px] text-muted">
+            <div className="mt-2 flex items-center gap-2 text-[10px] text-neutral-500 dark:text-neutral-400">
               <ChxIcon size={14} color="#7FF86C" />
               <span>Analysis complete</span>
             </div>

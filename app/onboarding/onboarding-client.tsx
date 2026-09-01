@@ -138,38 +138,24 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     }
   };
 
- const handleNext = async () => {
+  const handleNext = async () => {
+    if (currentStep < totalSteps - 1) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      setIsLoading(true);
 
-  if (currentStep < totalSteps - 1) {
+      await fetch("/api/onboarding", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
 
-    setCurrentStep(currentStep + 1);
-
-  } else {
-
-    setIsLoading(true);
-
-
-    await fetch("/api/onboarding", {
-
-      method:"POST",
-
-      headers:{
-        "Content-Type":"application/json",
-      },
-
-      body:JSON.stringify(formData),
-
-    });
-
-
-    setIsLoading(false);
-
-
-    window.location.href="/";
-
-  }
-
-};
+      setIsLoading(false);
+      window.location.href = "/";
+    }
+  };
 
   const handlePrevious = () => {
     if (currentStep > 0) {
@@ -178,27 +164,18 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   };
 
   const handleSkip = async () => {
+    await fetch("/api/onboarding", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        skipped: true,
+      }),
+    });
 
-
-  await fetch("/api/onboarding", {
-
-    method:"POST",
-
-    headers:{
-      "Content-Type":"application/json",
-    },
-
-    body:JSON.stringify({
-      skipped:true,
-    }),
-
-  });
-
-
-  window.location.href="/";
-
-
-};
+    window.location.href = "/";
+  };
 
   const progress = ((currentStep + 1) / totalSteps) * 100;
 
@@ -218,15 +195,15 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   };
 
   return (
-    <div className="h-full lg:h-[calc(100vh-78px)] flex items-start justify-center p-4 overflow-hidden">
+    <div className="min-h-screen bg-white dark:bg-[#171b1d] h-full lg:h-[calc(100vh-78px)] flex items-start justify-center p-4 overflow-hidden">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-3xl h-full lg:h-auto flex flex-col justify-center"
       >
-        <div className="h-1 bg-gray-100 shrink-0">
+        <div className="h-1 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden shrink-0">
           <motion.div
-            className="h-full bg-emerald-500"
+            className="h-full bg-[#7FF86C]"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.45 }}
@@ -249,10 +226,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 }}
                 className="space-y-2 mb-5 text-center"
               >
-                <h2 className="text-2xl lg:text-3xl font-display font-bold text-foreground">
+                <h2 className="text-2xl lg:text-3xl font-display font-bold text-neutral-900 dark:text-white">
                   {steps[currentStep].title}
                 </h2>
-                <p className="text-sm text-muted max-w-xl mx-auto">
+                <p className="text-sm text-neutral-600 dark:text-neutral-400 max-w-xl mx-auto">
                   {steps[currentStep].description}
                 </p>
 

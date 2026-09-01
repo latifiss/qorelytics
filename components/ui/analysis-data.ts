@@ -3,7 +3,6 @@ import {
   ReportSection,
 } from './types';
 
-
 export const analysisSteps: AnalysisStep[] = [
   {
     id: 1,
@@ -43,7 +42,6 @@ export const analysisSteps: AnalysisStep[] = [
   },
 ];
 
-
 export const reportSections: ReportSection[] = [
   {
     title: 'Dataset Overview',
@@ -63,37 +61,61 @@ $2,450,000
   },
 
   {
-    title: 'Key Findings',
+    title: 'Revenue Trend Analysis',
     content: `
-• Revenue increased by 18.6%
+Revenue increased by 24% over the last six months.
 
-• North America generated the highest sales
+[CHART:0]
 
-• Returning customers created 64% of revenue
+The growth was driven by:
+• New customer acquisition (up 18%)
+• Increased average order value (up 12%)
+• Seasonal promotions (up 8%)
+`,
+  },
 
-• New customer churn increased by 7%
+  {
+    title: 'Product Category Breakdown',
+    content: `
+Electronics led the growth with 32% increase.
+
+[CHART:1]
+
+Other categories showed steady growth:
+• Home & Garden: 18%
+• Clothing: 12%
+• Books: 8%
+`,
+  },
+
+  {
+    title: 'Regional Performance',
+    content: `
+North America and Asia Pacific show the strongest growth potential.
+
+[CHART:2]
+
+Key regional insights:
+• North America: 28% growth
+• Asia Pacific: 22% growth
+• Europe: 15% growth
+• Latin America: 18% growth
 `,
   },
 
   {
     title: 'Recommendations',
     content: `
-✓ Improve customer onboarding
+Based on the analysis, I recommend:
+• Increase marketing spend in Electronics category
+• Launch retention campaigns for Q3
+• Explore expansion in Asia Pacific markets
+• Optimize pricing strategy for Home & Garden
 
-✓ Launch retention campaigns
-
-✓ Increase investment in top performing regions
-`,
-  },
-
-  {
-    title: 'Confidence Score',
-    content: `
-92% confidence based on dataset quality and pattern consistency.
+Confidence Score: 92%
 `,
   },
 ];
-
 
 export const defaultResponse = `
 I analyzed your customer sales dataset.

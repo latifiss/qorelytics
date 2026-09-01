@@ -1,0 +1,8 @@
+export { default as PointA } from './a'
+export { default as PointB } from './b'
+export { default as PointC } from './c'
+export { default as PointD } from './d'
+export { default as PointE } from './e'
+export { default as PointF } from './f'
+export { default as PointG } from './g'
+export { default as PointH } from './h'

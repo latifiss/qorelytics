@@ -98,21 +98,21 @@ const Banner: React.FC<BannerProps> = ({
           exit={{ opacity: 0, y: 20, scale: 0.96 }}
           transition={{ duration: 0.3 }}
           className={cn(
-  'relative w-full bg-transparent shadow-tab',
-  'pb-4 pt-4 px-4',
-  'border-t border-l border-r border-subtle',
-  'rounded-t-2xl',
+            'relative w-full bg-transparent shadow-tab',
+            'pb-4 pt-4 px-4',
+            'border-t border-l border-r border-neutral-200 dark:border-neutral-800',
+            'rounded-t-2xl',
             'border-b-0',
-  'bg-white dark:bg-black',
-  className
-)}
+            'bg-white dark:bg-[#171b1d]',
+            className
+          )}
         >
           <button
             onClick={handleClose}
-            className="absolute top-2 right-2 rounded-full p-1 transition-colors hover:bg-fill-alpha-muted"
+            className="absolute top-2 right-2 rounded-full p-1 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800"
             aria-label="Close banner"
           >
-            <CloseIcon size={16} color="var(--text-secondary)" />
+            <CloseIcon size={16} className="text-neutral-600 dark:text-neutral-400" />
           </button>
 
           <div className="pr-6">
@@ -125,12 +125,12 @@ const Banner: React.FC<BannerProps> = ({
               {title ?? config.title}
             </motion.h3>
 
-            <p className="text-sm leading-relaxed text-muted pb-2.5">
+            <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-400 pb-2.5">
               {description ?? config.description}
             </p>
           </div>
 
-          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 rounded-b-2xl bg-linear-to-t from-background to-transparent" />
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 rounded-b-2xl bg-linear-to-t from-white dark:from-[#171b1d] to-transparent" />
         </motion.div>
       </AnimatePresence>
     </>

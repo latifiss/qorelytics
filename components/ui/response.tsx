@@ -167,50 +167,47 @@ const Response: React.FC<ResponseProps> = ({
       animate={{ opacity: 1, y: 0 }}
       className={cn('w-full', className)}
     >
-      {/* Copy & Regenerate Buttons */}
       <div className="flex justify-end gap-1 mb-2">
         <button
           onClick={copy}
           disabled={!text}
-          className="p-1.5 rounded-lg hover:bg-fill-alpha-subtle transition-colors disabled:opacity-50"
+          className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors disabled:opacity-50"
         >
           {copied ? (
-            <FiCheck size={14} color="var(--status-success)" />
+            <FiCheck size={14} className="text-green-600 dark:text-green-400" />
           ) : (
-            <FiCopy size={14} color="var(--text-secondary)" />
+            <FiCopy size={14} className="text-neutral-600 dark:text-neutral-400" />
           )}
         </button>
         {onRegenerate && (
           <button
             onClick={onRegenerate}
-            className="p-1.5 rounded-lg hover:bg-fill-alpha-subtle transition-colors"
+            className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
           >
-            <FiRefreshCw size={14} color="var(--text-secondary)" />
+            <FiRefreshCw size={14} className="text-neutral-600 dark:text-neutral-400" />
           </button>
         )}
       </div>
 
-      {/* AI PROCESSING */}
       {phase === 'thinking' && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="space-y-2"
         >
-          <div className="flex justify-between text-xs text-muted">
+          <div className="flex justify-between text-xs text-neutral-500 dark:text-neutral-400">
             <span>Analyzing data...</span>
             <span>{progress}%</span>
           </div>
 
-          <div className="h-1 rounded-full bg-fill-alpha-subtle overflow-hidden">
+          <div className="h-1 rounded-full bg-neutral-200 dark:bg-neutral-700 overflow-hidden">
             <motion.div
               animate={{ width: `${progress}%` }}
-              className="h-full"
-              style={{ backgroundColor: '#7FF86C' }}
+              className="h-full bg-[#7FF86C]"
             />
           </div>
 
-          <div className="mt-3 space-y-1 text-xs font-mono text-muted">
+          <div className="mt-3 space-y-1 text-xs font-mono text-neutral-600 dark:text-neutral-400">
             {activity.map((item, index) => (
               <motion.div
                 key={index}
@@ -228,23 +225,21 @@ const Response: React.FC<ResponseProps> = ({
         </motion.div>
       )}
 
-      {/* RESPONSE */}
       {phase !== 'thinking' && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-sm text-foreground leading-relaxed whitespace-pre-wrap"
+          className="text-sm text-neutral-900 dark:text-white leading-relaxed whitespace-pre-wrap"
         >
           {text}
 
-          {/* Report Container - Styled like keyboard key with 0 border radius */}
           {sections.length > 0 && (
-            <div className="mt-4 border border-subtle overflow-hidden bg-fill-alpha-subtle shadow-[0_1px_0_#7FF86C,5px_1px_0_#7FF86C,5px_4px_0_#7FF86C] dark:shadow-[0_1px_0_#7FF86C,5px_1px_0_#7FF86C,5px_4px_0_#7FF86C] dark:bg-gray-solid-800 dark:border-gray-solid-700">
-              <div className="flex justify-between items-center px-3 py-1.5 border-b border-subtle dark:border-gray-solid-700">
-                <span className="text-[10px] font-mono text-muted tracking-wider dark:text-white">
+            <div className="mt-4 border border-neutral-200 dark:border-neutral-800 overflow-hidden bg-neutral-50 dark:bg-neutral-900/50 shadow-[0_1px_0_#7FF86C,5px_1px_0_#7FF86C,5px_4px_0_#7FF86C]">
+              <div className="flex justify-between items-center px-3 py-1.5 border-b border-neutral-200 dark:border-neutral-800">
+                <span className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 tracking-wider">
                   analysis_report.md
                 </span>
-                <FiChevronDown size={12} color="var(--text-secondary)" className="dark:text-white" />
+                <FiChevronDown size={12} className="text-neutral-500 dark:text-neutral-400" />
               </div>
 
               <div className="p-3 space-y-3">
@@ -255,10 +250,10 @@ const Response: React.FC<ResponseProps> = ({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4 }}
                   >
-                    <h4 className="text-[11px] font-semibold mb-1 text-foreground dark:text-white">
+                    <h4 className="text-[11px] font-semibold mb-1 text-neutral-900 dark:text-white">
                       {reportSections[index].title}
                     </h4>
-                    <pre className="text-[10px] font-mono whitespace-pre-wrap text-muted leading-relaxed dark:text-gray-solid-400">
+                    <pre className="text-[10px] font-mono whitespace-pre-wrap text-neutral-600 dark:text-neutral-400 leading-relaxed">
                       {reportSections[index].content}
                     </pre>
                   </motion.div>
@@ -269,9 +264,8 @@ const Response: React.FC<ResponseProps> = ({
         </motion.div>
       )}
 
-      {/* Complete indicator */}
       {phase === 'complete' && (
-        <div className="mt-3 pt-2 border-t border-subtle text-[10px] text-muted dark:text-gray-solid-400">
+        <div className="mt-3 pt-2 border-t border-neutral-200 dark:border-neutral-800 text-[10px] text-neutral-500 dark:text-neutral-400">
           ✓ Analysis complete
         </div>
       )}

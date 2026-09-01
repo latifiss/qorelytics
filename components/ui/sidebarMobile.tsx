@@ -16,7 +16,6 @@ interface SidebarMobileProps {
   onClose: () => void
 }
 
-// Mock user data - replace with actual user data from your auth system
 const user = {
   name: "John Doe",
   email: "john@example.com",
@@ -28,33 +27,39 @@ const SidebarMobile = ({ onClose }: SidebarMobileProps) => {
   const pathname = usePathname()
   const { user, loading } = useUser();
 
-if (loading) {
-  return null;
-}
+  if (loading) {
+    return null;
+  }
 
   const isActive = (path: string) => {
     return pathname === path
   }
 
-  // Auth paths
   const authPath = user ? "/profile" : "/signin";
-const isAuthActive =
-  pathname === authPath ||
-  pathname === "/signin" ||
-  pathname === "/profile";
+  const isAuthActive =
+    pathname === authPath ||
+    pathname === "/signin" ||
+    pathname === "/profile";
 
   return (
-    <div className='sidebar-scroll-container flex flex-col p-0 w-full h-full pb-3 bg-black overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none'>
-      <div className='flex items-center justify-between px-4 pt-4 pb-2'>
-        <SidebarHeaderMobile />
-        <button 
-          onClick={onClose}
-          className='p-2 hover:opacity-80 transition-opacity mt-3'
-        >
-          <CloseIcon size={32} color='#ffffff' />
-        </button>
+    <div className='sidebar-scroll-container flex flex-col p-0 w-full h-full bg-white dark:bg-[#171b1d] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none'>
+      <div className='sticky top-0 z-50 bg-white dark:bg-[#171b1d]'>
+        <div className='flex items-center justify-between px-4 pt-4 pb-2'>
+          <SidebarHeaderMobile />
+          <button 
+            onClick={onClose}
+            className='p-2 hover:opacity-80 transition-opacity mt-3'
+          >
+            <div className="block dark:hidden">
+              <CloseIcon size={32} color='#000000' />
+            </div>
+            <div className="hidden dark:block">
+              <CloseIcon size={32} color='#ffffff' />
+            </div>
+          </button>
+        </div>
       </div>
-      <div className='flex flex-col gap-2 p-4'>
+      <div className='flex flex-col gap-2 px-4 pb-3'>
         <div className="relative">
           <AnimatePresence>
             {isActive('/') && (
@@ -74,6 +79,7 @@ const isAuthActive =
             href='/' 
             variant='internal' 
             type='mobile'
+            textColor="text-black dark:text-white"
             className={isActive('/') ? 'pl-6' : ''}
           />
         </div>
@@ -101,6 +107,7 @@ const isAuthActive =
               { label: 'Product 3', href: '/product-3', variant: 'internal' },
             ]}
             onToggle={(isOpen) => console.log('Accordion is', isOpen ? 'open' : 'closed')}
+            textColor="text-black dark:text-white"
             className={isActive('/chats') ? 'pl-6' : ''}
           />
         </div>
@@ -124,6 +131,7 @@ const isAuthActive =
             href="/pricing" 
             variant="internal" 
             type="mobile"
+            textColor="text-black dark:text-white"
             className={isActive('/pricing') ? 'pl-6' : ''}
           />
         </div>
@@ -147,6 +155,7 @@ const isAuthActive =
             href="/blog" 
             variant="external" 
             type="mobile"
+            textColor="text-black dark:text-white"
             className={isActive('/blog') ? 'pl-6' : ''}
           />
         </div>
@@ -170,6 +179,7 @@ const isAuthActive =
             href="/about" 
             variant="external" 
             type="mobile"
+            textColor="text-black dark:text-white"
             className={isActive('/about') ? 'pl-6' : ''}
           />
         </div>
@@ -189,23 +199,24 @@ const isAuthActive =
             )}
           </AnimatePresence>
           <SidebarItemAuth
-  label={user ? user.name : "Sign Up"}
-  href={user ? "/profile" : "/signin"}
-  variant="external"
-  type="mobile"
-  state={user ? "loggedin" : "loggedout"}
-  userData={
-    user
-      ? {
-          name: user.name,
-          email: user.email,
-          avatar: user.image ?? "/images/default-avatar.svg",
-          tier: "free",
-        }
-      : undefined
-  }
-  className={isAuthActive ? "pl-6" : ""}
-/>
+            label={user ? user.name : "Sign Up"}
+            href={user ? "/profile" : "/signin"}
+            variant="external"
+            type="mobile"
+            state={user ? "loggedin" : "loggedout"}
+            userData={
+              user
+                ? {
+                    name: user.name,
+                    email: user.email,
+                    avatar: user.image ?? "/images/default-avatar.svg",
+                    tier: "free",
+                  }
+                : undefined
+            }
+            textColor="text-black dark:text-white"
+            className={isAuthActive ? 'pl-6' : ''}
+          />
         </div>
       </div>
     </div>

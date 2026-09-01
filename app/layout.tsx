@@ -36,7 +36,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="h-full flex flex-col bg-background text-foreground font-text transition-colors overflow-hidden">
+      <body className="h-full flex flex-col bg-white dark:bg-[#171b1d] text-foreground font-text transition-colors overflow-hidden">
         <Providers>
           <LayoutWrapper>
             {children}

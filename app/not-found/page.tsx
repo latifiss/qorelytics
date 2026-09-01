@@ -10,7 +10,7 @@ export default function NotFound() {
   const isDark = theme === 'dark';
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-[#171b1d]">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -21,6 +21,8 @@ export default function NotFound() {
           <Icon404 
             size={228}
             accentColor={isDark ? '#ffffff' : '#1E1E1E'}
+            strokeColor={isDark ? '#ffffff' : '#000000'}
+            strokeLightColor={isDark ? '#ffffff' : '#FAFFF9'}
             className="sm:w-86.5 lg:w-120.75 h-auto"
           />
         </div>
@@ -33,7 +35,7 @@ export default function NotFound() {
         >
           <Link
             href="/"
-            className="text-foreground text-2xl font-medium underline lowercase hover:opacity-70 transition-opacity relative after:content-[''] after:absolute after:left-0 after:bottom-0 after:w-full after:h-0.5 after:bg-foreground after:scale-x-100 after:origin-left hover:after:scale-x-0 after:transition-transform after:duration-300"
+            className="text-neutral-900 dark:text-white text-2xl font-medium underline lowercase hover:opacity-70 transition-opacity relative after:content-[''] after:absolute after:left-0 after:bottom-0 after:w-full after:h-0.5 after:bg-neutral-900 dark:after:bg-white after:scale-x-100 after:origin-left hover:after:scale-x-0 after:transition-transform after:duration-300"
           >
             Go Home
           </Link>

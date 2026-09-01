@@ -141,20 +141,20 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
                 stiffness: 300,
               }}
               className={cn(
-                'w-full bg-surface-elevated rounded-none lg:rounded-3xl shadow-tab',
+                'w-full bg-white dark:bg-[#22282b] rounded-none lg:rounded-3xl shadow-tab',
                 isDesktop ? 'max-w-md' : 'max-w-full'
               )}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between p-4 border-b border-subtle">
-                <h3 className="text-xl font-display font-bold text-foreground tracking-wider">
+              <div className="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-800">
+                <h3 className="text-xl font-display font-bold text-neutral-900 dark:text-white tracking-wider">
                   Choose file type to upload
                 </h3>
                 <button
                   onClick={onClose}
-                  className="p-2 rounded-lg hover:bg-fill-alpha-subtle transition-colors"
+                  className="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
                 >
-                  <CloseIcon size={24} color="var(--text-secondary)" />
+                  <CloseIcon size={24} className="text-neutral-600 dark:text-neutral-400" />
                 </button>
               </div>
 
@@ -167,8 +167,7 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
                     onClick={() => handleFileSelect(option.id)}
                     className={cn(
                       'w-full flex items-center gap-3 px-4 h-13 rounded-lg border transition-colors duration-200',
-                      'bg-transparent text-muted border-subtle hover:text-foreground hover:border-border',
-                      'dark:hover:text-white'
+                      'bg-transparent border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700'
                     )}
                   >
                     <div className="w-6 h-6 shrink">
@@ -180,7 +179,7 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
                         className="w-full h-full object-contain"
                       />
                     </div>
-                    <span className="text-sm font-medium text-foreground">
+                    <span className="text-sm font-medium text-neutral-900 dark:text-white">
                       {option.label}
                     </span>
                     {isLoading && selectedType === option.id && (
@@ -189,17 +188,17 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
                         animate={{ opacity: 1 }}
                         className="ml-auto"
                       >
-                        <div className="w-4 h-4 border-2 border-border border-t-transparent rounded-full animate-spin" />
+                        <div className="w-4 h-4 border-2 border-neutral-300 dark:border-neutral-600 border-t-transparent rounded-full animate-spin" />
                       </motion.div>
                     )}
                   </motion.button>
                 ))}
               </div>
 
-              <div className="p-4 border-t border-subtle">
+              <div className="p-4 border-t border-neutral-200 dark:border-neutral-800">
                 <button
                   onClick={onClose}
-                  className="w-full py-3 text-sm font-medium text-muted hover:text-foreground transition-colors"
+                  className="w-full py-3 text-sm font-medium text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
                 >
                   Cancel
                 </button>
