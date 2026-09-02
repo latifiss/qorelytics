@@ -6,10 +6,6 @@ import {
 
 import { ReportSection } from '@/components/ui/types';
 
-/* -------------------------------------------------------------------------- */
-/* TYPES                                                                      */
-/* -------------------------------------------------------------------------- */
-
 export interface AnalysisChartSpec {
   type: string;
   title: string;
@@ -34,6 +30,7 @@ export interface AnalysisSection {
 export interface BuildReportInput {
   sections: AnalysisSection[];
   charts: AnalysisChartSpec[];
+  rows?: Record<string, unknown>[];
   recommendations?: AnalysisRecommendation[];
   limitations?: string[];
 }
@@ -42,10 +39,6 @@ export interface ChartDataBundle {
   config: ChartConfig;
   data: ChartDataPoint[];
 }
-
-/* -------------------------------------------------------------------------- */
-/* CHART TYPE MAP                                                             */
-/* -------------------------------------------------------------------------- */
 
 const ANALYSIS_CHART_TYPE_MAP: Record<string, ChartType> = {
   bar: 'bar',
@@ -71,10 +64,6 @@ function mapAnalysisChartType(type: string): ChartType {
   return ANALYSIS_CHART_TYPE_MAP[type] ?? 'bar';
 }
 
-/* -------------------------------------------------------------------------- */
-/* ROW HELPERS                                                                */
-/* -------------------------------------------------------------------------- */
-
 function normalizeColumnName(name: string): string {
   return name.trim().toLowerCase();
 }
@@ -86,12 +75,10 @@ function resolveColumnName(
   if (!requestedName) return null;
 
   const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
-
   const exactMatch = columns.find((column) => column === requestedName);
   if (exactMatch) return exactMatch;
 
   const normalizedRequested = normalizeColumnName(requestedName);
-
   return (
     columns.find(
       (column) => normalizeColumnName(column) === normalizedRequested,
@@ -120,13 +107,9 @@ function coerceNumericValue(
 /* -------------------------------------------------------------------------- */
 
 /**
- * Some document parsers intentionally preserve a PDF/DOC as one `content`
- * field. When that content clearly contains repeated analytical records,
- * recover those records for the chart layer instead of treating the parser
- * row as the chart data.
- *
- * This is deliberately conservative: it only creates records when the text
- * contains a repeated date + category + numeric measure + order/count shape.
+ * Recover repeated analytical records from a document parser's single
+ * content row. This intentionally stays conservative and only activates
+ * when the source clearly contains repeated date/category/value/order data.
  */
 function extractStructuredRowsFromRawText(
   rows: Record<string, unknown>[],
@@ -140,7 +123,6 @@ function extractStructuredRowsFromRawText(
     /([A-Za-z]+)\s+(\d{1,2})\s+(\d{4})\s+(.+?)\s+([\d,]+(?:\.\d+)?)\s+(?:dollars?|USD|\$)\s+([\d,]+(?:\.\d+)?)\s+orders?\b/gi;
 
   const matches = Array.from(content.matchAll(recordPattern));
-
   if (matches.length < 2) return rows;
 
   const extracted: Record<string, unknown>[] = [];
@@ -161,12 +143,12 @@ function extractStructuredRowsFromRawText(
 
     const region = categoryParts[0];
     const product = categoryParts.slice(1).join(' ');
-    const date = `${year}-${String(
-      new Date(`${month} 1, ${year}`).getMonth() + 1,
-    ).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const monthNumber = new Date(`${month} 1, ${year}`).getMonth() + 1;
+
+    if (!Number.isFinite(monthNumber)) continue;
 
     extracted.push({
-      date,
+      date: `${year}-${String(monthNumber).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
       month,
       year,
       region,
@@ -177,6 +159,62 @@ function extractStructuredRowsFromRawText(
   }
 
   return extracted.length >= 2 ? extracted : rows;
+}
+
+function getChartableRows(rows: Record<string, unknown>[]): Record<string, unknown>[] {
+  return extractStructuredRowsFromRawText(rows);
+}
+
+/**
+ * If the model does not return a chart for an upload with no question, give
+ * the UI a deterministic baseline visualization when the source itself is
+ * clearly chartable. This is a fallback, not a forced chart for every file.
+ */
+function getAutomaticChartSpecs(
+  rows: Record<string, unknown>[],
+): AnalysisChartSpec[] {
+  const chartRows = getChartableRows(rows);
+
+  if (chartRows.length < 2) return [];
+
+  const columns = Object.keys(chartRows[0] ?? {});
+  const hasMonth = columns.includes('month');
+  const hasRevenue = columns.includes('revenue');
+  const hasRegion = columns.includes('region');
+
+  if (!hasMonth || !hasRevenue) return [];
+
+  const specs: AnalysisChartSpec[] = [
+    {
+      type: 'line',
+      title: 'Monthly Revenue Trend',
+      description: 'Revenue movement across the available months.',
+      dimensions: ['month'],
+      measures: ['revenue'],
+      reason: 'A time-series view makes the monthly revenue trend easier to understand.',
+    },
+  ];
+
+  if (hasRegion) {
+    specs.push({
+      type: 'bar',
+      title: 'Revenue by Region',
+      description: 'Total revenue comparison between regions.',
+      dimensions: ['region'],
+      measures: ['revenue'],
+      reason: 'A regional comparison highlights differences in revenue performance.',
+    });
+  }
+
+  return specs;
+}
+
+function getEffectiveCharts(
+  charts: AnalysisChartSpec[],
+  rows: Record<string, unknown>[],
+): AnalysisChartSpec[] {
+  if (charts.length > 0) return charts;
+  return getAutomaticChartSpecs(rows);
 }
 
 function buildChartRows(
@@ -192,26 +230,17 @@ function buildChartRows(
     .map((measure) => resolveColumnName(rows, measure))
     .filter((measure): measure is string => measure !== null);
 
-  const fields = [
-    ...new Set([...resolvedDimensions, ...resolvedMeasures]),
-  ];
-
+  const fields = [...new Set([...resolvedDimensions, ...resolvedMeasures])];
   if (fields.length === 0 || rows.length === 0) return [];
 
   return rows.map((row) => {
     const point: ChartDataPoint = {};
-
     fields.forEach((field) => {
       point[field] = coerceNumericValue(row[field]);
     });
-
     return point;
   });
 }
-
-/* -------------------------------------------------------------------------- */
-/* PUBLIC API                                                                 */
-/* -------------------------------------------------------------------------- */
 
 export function getDatasetRows(
   profile?:
@@ -238,18 +267,16 @@ export function buildChartDataFromAnalysis(
   charts: AnalysisChartSpec[],
   rows: Record<string, unknown>[],
 ): ChartDataBundle[] {
-  if (!charts.length || !rows.length) return [];
+  if (!rows.length) return [];
 
-  const chartRows = extractStructuredRowsFromRawText(rows);
+  const effectiveCharts = getEffectiveCharts(charts, rows);
+  const chartRows = getChartableRows(rows);
 
-  return charts
+  if (!effectiveCharts.length || !chartRows.length) return [];
+
+  return effectiveCharts
     .map((chart, index) => {
-      const data = buildChartRows(
-        chartRows,
-        chart.dimensions,
-        chart.measures,
-      );
-
+      const data = buildChartRows(chartRows, chart.dimensions, chart.measures);
       if (data.length === 0) return null;
 
       const resolvedDimensions = chart.dimensions
@@ -298,13 +325,15 @@ function formatLimitationsSection(limitations: string[]): string {
 }
 
 export function buildReportSections(input: BuildReportInput): ReportSection[] {
+  const effectiveCharts = getEffectiveCharts(input.charts, input.rows ?? []);
+
   const sections: ReportSection[] = input.sections.map((section) => ({
     title: section.title,
     content: section.content.trim(),
   }));
 
-  if (input.charts.length > 0) {
-    const visualizationContent = input.charts
+  if (effectiveCharts.length > 0) {
+    const visualizationContent = effectiveCharts
       .map((chart, index) => {
         const description = chart.description?.trim() || chart.reason.trim();
         return `${description}\n\n[CHART:${index}]`;
