@@ -18,6 +18,13 @@ model User {
   emailVerified Boolean @default(false)
   image         String?
 
+  tier                    String    @default("free")
+  paddleCustomerId        String?   @unique
+  paddleSubscriptionId    String?   @unique
+  paddleSubscriptionStatus String?
+  paddlePriceId           String?
+  paddleCurrentPeriodEnd  DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -206,9 +213,6 @@ model ChatSession {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@index([userId])
-  @@index([userId, updatedAt])
 }
 
 model Message {
@@ -271,6 +275,19 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+// =========================
+// PADDLE WEBHOOKS
+// =========================
+
+model PaddleEvent {
+  id          String   @id @default(cuid())
+  eventId     String   @unique
+  eventType   String
+  processedAt DateTime @default(now())
+
+  @@index([eventType])
 }
 
 // =========================
