@@ -6,6 +6,11 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
 
+  // pdf-parse uses native Node dependencies (@napi-rs/canvas) that
+  // Turbopack cannot bundle into ESM chunks. Keep them external so
+  // Vercel loads them natively at runtime.
+  serverExternalPackages: ["pdf-parse", "@napi-rs/canvas"],
+
   images: {
     remotePatterns: [
       {
