@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import PaddleCheckout from './paddleCheckout'
 import { useUser } from '@/hooks/use-user'
+import { useBilling } from '@/hooks/use-billing'
 import type { BillingTier, BillingInterval } from '@/src/lib/paddle'
 
 interface BillingActionButtonProps {
@@ -17,7 +18,8 @@ const tierRank: Record<BillingTier, number> = { free: 0, pro: 1, team: 2 }
 
 export default function BillingActionButton({ tier, interval, children, className }: BillingActionButtonProps) {
   const router = useRouter()
-  const { user, loading } = useUser()
+  const { user, loading: userLoading } = useUser()
+  const { tier: currentTier, loading: billingLoading } = useBilling()
 
   const handleManage = async () => {
     try {
@@ -34,7 +36,7 @@ export default function BillingActionButton({ tier, interval, children, classNam
     }
   }
 
-  if (loading) {
+  if (userLoading || (user && billingLoading)) {
     return (
       <button type="button" disabled className={className}>
         Loading…
@@ -49,8 +51,6 @@ export default function BillingActionButton({ tier, interval, children, classNam
       </button>
     )
   }
-
-  const currentTier = (user as typeof user & { tier?: BillingTier }).tier ?? 'free'
 
   if (tierRank[currentTier] > 0) {
     return (
