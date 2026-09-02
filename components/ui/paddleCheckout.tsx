@@ -73,15 +73,7 @@ export default function PaddleCheckout({ tier, interval, children, className }: 
       }
 
       paddle.Checkout.open({
-        items: [{ priceId: data.priceId, quantity: 1 }],
-        customData: {
-          userId: data.userId,
-          tier: data.tier,
-          interval: data.interval,
-        },
-        customer: {
-          email: data.email,
-        },
+        transactionId: data.transactionId,
       })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Unable to start checkout')
