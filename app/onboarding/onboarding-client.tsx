@@ -141,10 +141,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const handleNext = async () => {
     if (currentStep < totalSteps - 1) {
       setCurrentStep(currentStep + 1);
-    } else {
-      setIsLoading(true);
+      return;
+    }
 
-      await fetch("/api/onboarding", {
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/onboarding", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -152,8 +155,18 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         body: JSON.stringify(formData),
       });
 
-      setIsLoading(false);
+      if (!response.ok) {
+        throw new Error("Failed to complete onboarding.");
+      }
+
+      onComplete?.(formData);
+
+      // The home page is the chat interface. Its server-side onboarding
+      // check will now pass because the API has persisted completion.
       window.location.href = "/";
+    } catch (error) {
+      console.error("[Onboarding] Failed to complete onboarding:", error);
+      setIsLoading(false);
     }
   };
 
@@ -241,6 +254,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                   <Button
                     onClick={handleNext}
                     loading={isLoading}
+                    loadingText="Preparing your workspace..."
                     disabled={isLoading}
                     size="md"
                   >
