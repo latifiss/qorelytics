@@ -6,6 +6,9 @@ export const supportedFileTypes = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.ms-excel",
   "application/json",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ] as const;
 
 export const MAX_FILE_SIZE = 25 * 1024 * 1024;
@@ -29,11 +32,19 @@ export function validateDatasetFile(file: File): void {
 
   const extension = file.name.split(".").pop()?.toLowerCase();
 
-  const supportedExtensions = ["csv", "xlsx", "xls", "json"];
+  const supportedExtensions = [
+    "csv",
+    "xlsx",
+    "xls",
+    "json",
+    "pdf",
+    "doc",
+    "docx",
+  ];
 
   if (!extension || !supportedExtensions.includes(extension)) {
     throw new Error(
-      "Unsupported file type. Upload CSV, XLSX, XLS, or JSON files.",
+      "Unsupported file type. Upload CSV, XLSX, XLS, JSON, PDF, DOC, or DOCX files.",
     );
   }
 }
