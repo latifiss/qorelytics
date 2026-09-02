@@ -10,150 +10,51 @@ import {
 
 import type { DatasetProfile } from '@/src/types/dataset';
 
-/* -------------------------------------------------------------------------- */
-/* CONVERSATION                                                               */
-/* -------------------------------------------------------------------------- */
-
 export interface AnalysisMessage {
   role: 'user' | 'assistant';
   content: string;
 }
 
-/* -------------------------------------------------------------------------- */
-/* CHART SCHEMA                                                               */
-/* -------------------------------------------------------------------------- */
-
 const chartSchema = z.object({
   type: z.enum([
-    'bar',
-    'horizontal-bar',
-    'grouped-bar',
-    'stacked-bar',
-    'line',
-    'area',
-    'pie',
-    'donut',
-    'scatter',
-    'histogram',
-    'box-plot',
-    'funnel',
-    'waterfall',
-    'radar',
-    'treemap',
-    'gauge',
-    'sankey',
+    'bar', 'horizontal-bar', 'grouped-bar', 'stacked-bar', 'line', 'area',
+    'pie', 'donut', 'scatter', 'histogram', 'box-plot', 'funnel', 'waterfall',
+    'radar', 'treemap', 'gauge', 'sankey',
   ]),
-
   title: z.string(),
-
   description: z.string(),
-
-  dimensions: z.array(
-    z.string(),
-  ),
-
-  measures: z.array(
-    z.string(),
-  ),
-
+  dimensions: z.array(z.string()),
+  measures: z.array(z.string()),
   reason: z.string(),
 });
 
-/* -------------------------------------------------------------------------- */
-/* ANALYSIS RESULT                                                            */
-/* -------------------------------------------------------------------------- */
+export const analysisResultSchema = z.object({
+  status: z.enum(['success', 'partial', 'unsupported', 'insufficient_data']),
+  response: z.string(),
+  summary: z.string(),
+  datasetAssessment: z.object({
+    isAnalyzable: z.boolean(),
+    isStructured: z.boolean(),
+    isQuantitative: z.boolean(),
+    confidence: z.number().min(0).max(1),
+    explanation: z.string(),
+  }),
+  sections: z.array(z.object({
+    title: z.string(),
+    content: z.string(),
+    importance: z.enum(['high', 'medium', 'low']),
+  })),
+  charts: z.array(chartSchema),
+  recommendations: z.array(z.object({
+    title: z.string(),
+    description: z.string(),
+    priority: z.enum(['high', 'medium', 'low']),
+  })),
+  limitations: z.array(z.string()),
+  suggestedFollowUps: z.array(z.string()),
+});
 
-export const analysisResultSchema =
-  z.object({
-    status: z.enum([
-      'success',
-      'partial',
-      'unsupported',
-      'insufficient_data',
-    ]),
-
-    response: z.string(),
-
-    summary: z.string(),
-
-    datasetAssessment:
-      z.object({
-        isAnalyzable:
-          z.boolean(),
-
-        isStructured:
-          z.boolean(),
-
-        isQuantitative:
-          z.boolean(),
-
-        confidence:
-          z
-            .number()
-            .min(0)
-            .max(1),
-
-        explanation:
-          z.string(),
-      }),
-
-    sections: z.array(
-      z.object({
-        title: z.string(),
-
-        content:
-          z.string(),
-
-        importance:
-          z.enum([
-            'high',
-            'medium',
-            'low',
-          ]),
-      }),
-    ),
-
-    charts: z.array(
-      chartSchema,
-    ),
-
-    recommendations:
-      z.array(
-        z.object({
-          title:
-            z.string(),
-
-          description:
-            z.string(),
-
-          priority:
-            z.enum([
-              'high',
-              'medium',
-              'low',
-            ]),
-        }),
-      ),
-
-    limitations:
-      z.array(
-        z.string(),
-      ),
-
-    suggestedFollowUps:
-      z.array(
-        z.string(),
-      ),
-  });
-
-export type AnalysisResult =
-  z.infer<
-    typeof analysisResultSchema
-  >;
-
-/* -------------------------------------------------------------------------- */
-/* SYSTEM PROMPT                                                              */
-/* -------------------------------------------------------------------------- */
+export type AnalysisResult = z.infer<typeof analysisResultSchema>;
 
 const SYSTEM_PROMPT = `
 You are Qorelytics, an intelligent AI data analyst.
@@ -493,106 +394,38 @@ The suggestedFollowUps field contains useful questions the user could ask next.
 Do not create fake data to make the output look complete.
 `;
 
-/* -------------------------------------------------------------------------- */
-/* CONVERSATION BUILDER                                                       */
-/* -------------------------------------------------------------------------- */
-
-function buildConversationContext(
-  messages: AnalysisMessage[],
-): string {
-  if (!messages.length) {
-    return 'No previous conversation exists.';
-  }
-
-  return messages
-    .map(
-      (message, index) =>
-        `MESSAGE ${index + 1}
+function buildConversationContext(messages: AnalysisMessage[]): string {
+  if (!messages.length) return 'No previous conversation exists.';
+  return messages.map((message, index) => `MESSAGE ${index + 1}
 ROLE: ${message.role.toUpperCase()}
 CONTENT:
-${message.content}`,
-    )
-    .join('\n\n');
+${message.content}`).join('\n\n');
 }
 
-/* -------------------------------------------------------------------------- */
-/* DATASET PROFILE CONTEXT                                                    */
-/* -------------------------------------------------------------------------- */
-
-function buildDatasetProfileContext(
-  profile: DatasetProfile,
-): string {
-  return JSON.stringify(
-    {
-      fileName:
-        profile.fileName,
-
-      fileType:
-        profile.fileType,
-
-      rowCount:
-        profile.rowCount,
-
-      columnCount:
-        profile.columnCount,
-
-      isStructured:
-        profile.isStructured,
-
-      isQuantitative:
-        profile.isQuantitative,
-
-      columns:
-        profile.columns,
-
-      statistics:
-        profile.statistics,
-
-      sampleRows:
-        profile.sampleRows,
-
-      preview:
-        profile.preview,
-
-      numericColumns:
-        profile.numericColumns,
-
-      categoricalColumns:
-        profile.categoricalColumns,
-
-      dateColumns:
-        profile.dateColumns,
-
-      totalMissingValues:
-        profile.totalMissingValues,
-
-      textContent:
-        profile.textContent,
-
-      warnings:
-        profile.warnings,
-    },
-    null,
-    2,
-  );
+function buildDatasetProfileContext(profile: DatasetProfile): string {
+  return JSON.stringify({
+    fileName: profile.fileName,
+    fileType: profile.fileType,
+    rowCount: profile.rowCount,
+    columnCount: profile.columnCount,
+    isStructured: profile.isStructured,
+    isQuantitative: profile.isQuantitative,
+    columns: profile.columns,
+    statistics: profile.statistics,
+    sampleRows: profile.sampleRows,
+    preview: profile.preview,
+    numericColumns: profile.numericColumns,
+    categoricalColumns: profile.categoricalColumns,
+    dateColumns: profile.dateColumns,
+    totalMissingValues: profile.totalMissingValues,
+    textContent: profile.textContent,
+    warnings: profile.warnings,
+  }, null, 2);
 }
 
-/* -------------------------------------------------------------------------- */
-/* MODEL                                                                      */
-/* -------------------------------------------------------------------------- */
-
-function getAIModel(
-  model?: string,
-) {
-  return getModel(
-    model ||
-      'deepseek/deepseek-chat',
-  );
+function getAIModel(model?: string) {
+  return getModel(model || 'deepseek/deepseek-chat');
 }
-
-/* -------------------------------------------------------------------------- */
-/* MAIN AI ANALYZER                                                           */
-/* -------------------------------------------------------------------------- */
 
 export async function runAnalysis({
   dataset,
@@ -602,232 +435,35 @@ export async function runAnalysis({
   model,
 }: {
   dataset: DatasetProfile;
-
-  /**
-   * The complete parsed dataset.
-   *
-   * This is the source of truth for deterministic analysis and
-   * the actual data sent to the model.
-   */
-  rows: Record<
-    string,
-    unknown
-  >[];
-
+  rows: Record<string, unknown>[];
   messages?: AnalysisMessage[];
-
   userQuestion?: string;
-
   model?: string;
 }): Promise<AnalysisResult> {
-  console.log('');
-  console.log(
-    '==================================================',
-  );
-  console.log(
-    'AI ANALYZER STARTED',
-  );
-  console.log(
-    '==================================================',
-  );
+  console.log('AI ANALYZER STARTED');
+  console.log('[AI-1] Profile rowCount:', dataset.rowCount);
+  console.log('[AI-1] Profile columnCount:', dataset.columnCount);
+  console.log('[AI-1] Profile isStructured:', dataset.isStructured);
+  console.log('[AI-1] Profile isQuantitative:', dataset.isQuantitative);
+  console.log('[AI-1] Actual rows received:', rows.length);
+  console.log('[AI-1] Actual columns:', rows.length > 0 ? Object.keys(rows[0]) : []);
 
-  /* ---------------------------------------------------------------------- */
-  /* STEP 1: INPUT VALIDATION                                               */
-  /* ---------------------------------------------------------------------- */
+  if (rows.length > 0) console.dir(rows[0], { depth: null });
+  if (rows.length === 0) throw new Error('Analyzer received an empty dataset.');
 
-  console.log(
-    '[AI-1] Dataset profile received.',
-  );
+  const deterministicAnalysis = analyzeDatasetStructure(dataset, rows);
+  console.log('[AI-2] Deterministic analysis completed.');
+  console.log('[AI-2] Deterministic row count:', deterministicAnalysis.rowCount);
+  console.log('[AI-2] Deterministic column count:', deterministicAnalysis.columnCount);
+  console.log('[AI-2] Deterministic status:', deterministicAnalysis.status);
 
-  console.log(
-    '[AI-1] Profile rowCount:',
-    dataset.rowCount,
-  );
+  const analysisContext = createAnalysisContext(deterministicAnalysis);
+  const profileContext = buildDatasetProfileContext(dataset);
+  const actualDataContext = JSON.stringify(rows, null, 2);
+  const conversationContext = buildConversationContext(messages);
 
-  console.log(
-    '[AI-1] Profile columnCount:',
-    dataset.columnCount,
-  );
-
-  console.log(
-    '[AI-1] Profile isStructured:',
-    dataset.isStructured,
-  );
-
-  console.log(
-    '[AI-1] Profile isQuantitative:',
-    dataset.isQuantitative,
-  );
-
-  console.log(
-    '[AI-1] Actual rows received:',
-    rows.length,
-  );
-
-  console.log(
-    '[AI-1] Actual columns:',
-    rows.length > 0
-      ? Object.keys(rows[0])
-      : [],
-  );
-
-  if (rows.length > 0) {
-    console.log(
-      '[AI-1] FIRST ACTUAL ROW:',
-    );
-
-    console.dir(rows[0], {
-      depth: null,
-    });
-  }
-
-  if (rows.length === 0) {
-    console.error(
-      '[AI-1] ERROR: Analyzer received ZERO actual rows.',
-    );
-
-    throw new Error(
-      'Analyzer received an empty dataset.',
-    );
-  }
-
-  /* ---------------------------------------------------------------------- */
-  /* STEP 2: DETERMINISTIC ANALYSIS                                         */
-  /* ---------------------------------------------------------------------- */
-
-  console.log('');
-  console.log(
-    '[AI-2] Running deterministic dataset analysis...',
-  );
-
-  const deterministicAnalysis =
-    analyzeDatasetStructure(
-      dataset,
-      rows,
-    );
-
-  console.log(
-    '[AI-2] Deterministic analysis completed.',
-  );
-
-  console.log(
-    '[AI-2] Deterministic row count:',
-    deterministicAnalysis.rowCount,
-  );
-
-  console.log(
-    '[AI-2] Deterministic column count:',
-    deterministicAnalysis.columnCount,
-  );
-
-  console.log(
-    '[AI-2] Deterministic status:',
-    deterministicAnalysis.status,
-  );
-
-  console.dir(
-    deterministicAnalysis,
-    {
-      depth: null,
-    },
-  );
-
-  /* ---------------------------------------------------------------------- */
-  /* STEP 3: COMPACT ANALYSIS CONTEXT                                       */
-  /* ---------------------------------------------------------------------- */
-
-  console.log('');
-  console.log(
-    '[AI-3] Creating deterministic analysis context...',
-  );
-
-  const analysisContext =
-    createAnalysisContext(
-      deterministicAnalysis,
-    );
-
-  console.log(
-    '[AI-3] Analysis context created.',
-  );
-
-  /* ---------------------------------------------------------------------- */
-  /* STEP 4: PROFILE CONTEXT                                                */
-  /* ---------------------------------------------------------------------- */
-
-  console.log('');
-  console.log(
-    '[AI-4] Creating dataset profile context...',
-  );
-
-  const profileContext =
-    buildDatasetProfileContext(
-      dataset,
-    );
-
-  console.log(
-    '[AI-4] Dataset profile context created.',
-  );
-
-  /* ---------------------------------------------------------------------- */
-  /* STEP 5: ACTUAL DATA CONTEXT                                            */
-  /* ---------------------------------------------------------------------- */
-
-  console.log('');
-  console.log(
-    '[AI-5] Creating ACTUAL DATA context...',
-  );
-
-  const actualDataContext =
-    JSON.stringify(
-      rows,
-      null,
-      2,
-    );
-
-  console.log(
-    '[AI-5] Actual data JSON length:',
-    actualDataContext.length,
-  );
-
-  /* ---------------------------------------------------------------------- */
-  /* STEP 6: CONVERSATION CONTEXT                                           */
-  /* ---------------------------------------------------------------------- */
-
-  console.log('');
-  console.log(
-    '[AI-6] Building conversation context...',
-  );
-
-  const conversationContext =
-    buildConversationContext(
-      messages,
-    );
-
-  console.log(
-    '[AI-6] Message count:',
-    messages.length,
-  );
-
-  /* ---------------------------------------------------------------------- */
-  /* STEP 7: LATEST QUESTION                                                */
-  /* ---------------------------------------------------------------------- */
-
-  const latestQuestion =
-    userQuestion?.trim() ||
+  const latestQuestion = userQuestion?.trim() ||
     'Analyze this uploaded dataset and provide the most useful insights supported by the available information.';
-
-  console.log('');
-  console.log(
-    '[AI-7] Latest user question:',
-  );
-
-  console.log(
-    latestQuestion,
-  );
-
-  /* ---------------------------------------------------------------------- */
-  /* STEP 8: FINAL PROMPT                                                    */
-  /* ---------------------------------------------------------------------- */
 
   const prompt = `
 ==================================================
@@ -898,191 +534,31 @@ Follow all system instructions.
 Return the complete structured analysis.
 `;
 
-  console.log('');
-  console.log(
-    '==================================================',
-  );
-
-  console.log(
-    '[AI-8] FINAL PROMPT CREATED',
-  );
-
-  console.log(
-    '==================================================',
-  );
-
-  console.log(
-    '[AI-8] Prompt length:',
-    prompt.length,
-  );
-
-  console.log(
-    '[AI-8] Prompt contains actual data:',
-    prompt.includes(
-      'ACTUAL DATA ROWS',
-    ),
-  );
-
-  console.log(
-    '[AI-8] Actual record count:',
-    rows.length,
-  );
-
-  /* ---------------------------------------------------------------------- */
-  /* STEP 9: MODEL                                                          */
-  /* ---------------------------------------------------------------------- */
-
-  console.log('');
-  console.log(
-    '[AI-9] Resolving AI model...',
-  );
-
-  const aiModel =
-    getAIModel(model);
-
-  console.log(
-    '[AI-9] AI model resolved.',
-  );
-
-  console.log(
-    '[AI-9] Requested model:',
-    model ||
-      'deepseek/deepseek-chat',
-  );
-
-  /* ---------------------------------------------------------------------- */
-  /* STEP 10: GENERATE STRUCTURED RESULT                                    */
-  /* ---------------------------------------------------------------------- */
-
-  console.log('');
-  console.log(
-    '==================================================',
-  );
-
-  console.log(
-    '[AI-10] CALLING generateObject()',
-  );
-
-  console.log(
-    '==================================================',
-  );
-
-  const startTime =
-    Date.now();
+  const aiModel = getAIModel(model);
+  const startTime = Date.now();
 
   try {
-    const result =
-      await generateObject({
-        model: aiModel,
+    const result = await generateObject({
+      model: aiModel,
+      schema: analysisResultSchema,
+      system: SYSTEM_PROMPT,
+      prompt,
+      // Keep the request below the available OpenRouter credit budget.
+      // The previous request could reserve up to 16,000 output tokens,
+      // while the available balance only covered about 13,646.
+      maxOutputTokens: 12000,
+      temperature: 0.2,
+    });
 
-        schema:
-          analysisResultSchema,
-
-        system:
-          SYSTEM_PROMPT,
-
-        prompt,
-
-        temperature: 0.2,
-      });
-
-    const duration =
-      Date.now() -
-      startTime;
-
-    console.log('');
-    console.log(
-      '[AI-10] generateObject() completed.',
-    );
-
-    console.log(
-      '[AI-10] Duration:',
-      `${duration}ms`,
-    );
-
-    console.log(
-      '[AI-10] Result status:',
-      result.object.status,
-    );
-
-    console.log(
-      '[AI-10] Result summary:',
-      result.object.summary,
-    );
-
-    console.log(
-      '[AI-10] Is analyzable:',
-      result.object
-        .datasetAssessment
-        .isAnalyzable,
-    );
-
-    console.log(
-      '[AI-10] Is structured:',
-      result.object
-        .datasetAssessment
-        .isStructured,
-    );
-
-    console.log(
-      '[AI-10] Is quantitative:',
-      result.object
-        .datasetAssessment
-        .isQuantitative,
-    );
-
-    console.log(
-      '[AI-10] Chart count:',
-      result.object
-        .charts.length,
-    );
-
-    console.log(
-      '[AI-10] Section count:',
-      result.object
-        .sections.length,
-    );
-
-    console.log(
-      '[AI-10] Recommendation count:',
-      result.object
-        .recommendations
-        .length,
-    );
-
-    console.log('');
-    console.log(
-      '==================================================',
-    );
-
-    console.log(
-      'AI ANALYZER COMPLETED',
-    );
-
-    console.log(
-      '==================================================',
-    );
+    console.log('[AI-10] generateObject() completed in', `${Date.now() - startTime}ms`);
+    console.log('[AI-10] Result status:', result.object.status);
+    console.log('[AI-10] Chart count:', result.object.charts.length);
+    console.log('[AI-10] Section count:', result.object.sections.length);
+    console.log('[AI-10] Recommendation count:', result.object.recommendations.length);
 
     return result.object;
   } catch (error) {
-    console.error('');
-    console.error(
-      '==================================================',
-    );
-
-    console.error(
-      '[AI-10] generateObject() FAILED',
-    );
-
-    console.error(
-      '==================================================',
-    );
-
-    console.error(
-      '[AI-10] Error:',
-      error,
-    );
-
+    console.error('[AI-10] generateObject() FAILED', error);
     throw error;
   }
 }
