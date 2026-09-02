@@ -16,20 +16,14 @@ export const TIER_LIMITS = {
     maxUploadsPerMonth: null,
     allowedExtensions: ["csv", "xlsx", "xls", "json"] as const,
   },
-} satisfies Record<
-  BillingTier,
-  {
-    maxFileSizeBytes: number;
-    maxUploadsPerMonth: number | null;
-    allowedExtensions: readonly string[];
-  }
->;
+} satisfies Record<BillingTier, {
+  maxFileSizeBytes: number;
+  maxUploadsPerMonth: number | null;
+  allowedExtensions: readonly string[];
+}>;
 
 export function normalizeBillingTier(value: string | null | undefined): BillingTier {
-  if (value === "pro" || value === "team") {
-    return value;
-  }
-
+  if (value === "pro" || value === "team") return value;
   return "free";
 }
 
@@ -41,29 +35,19 @@ export function formatFileSize(bytes: number): string {
   return `${Math.round(bytes / (1024 * 1024))}MB`;
 }
 
-export function validateFileForTier(
-  file: File,
-  tier: string | null | undefined,
-): void {
+export function validateFileForTier(file: File, tier: string | null | undefined): void {
   const normalizedTier = normalizeBillingTier(tier);
   const limits = TIER_LIMITS[normalizedTier];
   const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
 
-  if (file.size === 0) {
-    throw new Error("The uploaded file is empty.");
-  }
+  if (file.size === 0) throw new Error("The uploaded file is empty.");
 
   if (file.size > limits.maxFileSizeBytes) {
-    throw new Error(
-      `Your ${normalizedTier} plan allows files up to ${formatFileSize(limits.maxFileSizeBytes)}.`,
-    );
+    throw new Error(`Your ${normalizedTier} plan allows files up to ${formatFileSize(limits.maxFileSizeBytes)}.`);
   }
 
-  if (!limits.allowedExtensions.includes(extension)) {
+  if (!(limits.allowedExtensions as readonly string[]).includes(extension)) {
     const allowed = limits.allowedExtensions.map((item) => item.toUpperCase()).join(", ");
-
-    throw new Error(
-      `Your ${normalizedTier} plan supports ${allowed} files. Upgrade your plan to upload this file type.`,
-    );
+    throw new Error(`Your ${normalizedTier} plan supports ${allowed} files. Upgrade your plan to upload this file type.`);
   }
 }
