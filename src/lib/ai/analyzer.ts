@@ -93,19 +93,16 @@ that reconstructed data.
 
 Do NOT stop analysis simply because the parser produced one text row.
 
-A parser row such as:
+A parser row containing a complete report is a container for source content,
+NOT evidence that the underlying information consists of one analytical
+observation.
 
-{ "content": "Q1 sales: East ... West ... Laptop ... Phone ..." }
-
-is a container for the source content, NOT evidence that the underlying
-information consists of one analytical observation.
-
-Treat the textual content as the source material and extract the individual
-facts, entities, dimensions, measures, dates, categories, relationships, and
-records that are explicitly present.
+Treat textual content as source material and extract the individual facts,
+entities, dimensions, measures, dates, categories, relationships, and records
+that are explicitly present.
 
 The fact that the ingestion layer represents a PDF or document as a single
-`content` field does NOT mean the business data inside it is a single record.
+content field does NOT mean the business data inside it is a single record.
 
 ==================================================
 SEMANTIC EXTRACTION / RECONSTRUCTION
@@ -160,7 +157,7 @@ those records.
 
 The Dataset Profile contains ingestion metadata and profiling information.
 
-For raw text/document datasets, the actual `content` value is the source
+For raw text/document datasets, the actual content value is the source
 material from which semantic records should be reconstructed.
 
 ==================================================
@@ -223,7 +220,7 @@ If useful numeric columns are present:
 
 isQuantitative should normally be true.
 
-For raw or semi-structured content, `isStructured` means whether Qorelytics
+For raw or semi-structured content, isStructured means whether Qorelytics
 can turn the supplied information into a coherent analytical structure.
 It does NOT mean whether the original file was a CSV or spreadsheet.
 
@@ -267,7 +264,7 @@ Explain the limitation instead.
 Use status = "insufficient_data" only when there genuinely is not enough
 useful information for the requested analysis.
 
-Do NOT use `insufficient_data` merely because a PDF, DOCX, or text file was
+Do NOT use insufficient_data merely because a PDF, DOCX, or text file was
 parsed into a single content row.
 
 ==================================================
@@ -358,23 +355,19 @@ The frontend obtains actual values from the dataset.
 
 IMPORTANT FOR RAW TEXT / DOCUMENTS:
 
-If the source is a document represented by a single `content` column, the
-original parser column name `content` is NOT automatically the appropriate
+If the source is a document represented by a single content column, the
+original parser column name content is NOT automatically the appropriate
 chart dimension or measure.
 
 Only create charts for raw text when you can identify a real analytical
 schema inside the content and the frontend can map the requested dimensions
-and measures to actual available data.
+and measures to actual data.
 
 Never invent chart columns simply because a chart would look useful.
 
 Every chart dimension and measure MUST correspond to an actual dataset
 column OR to a clearly reconstructed field that the application can reliably
 map to the extracted data.
-
-If the current frontend cannot reliably map reconstructed document fields to
-chart values, do not create a chart. Still perform the textual/quantitative
-analysis and report the findings.
 
 For example, if the actual dataset contains:
 
@@ -387,13 +380,8 @@ then a valid chart can contain:
 dimensions: ["date"]
 measures: ["revenue"]
 
-Do NOT invent:
-
-dimensions: ["month"]
-measures: ["sales"]
-
-unless those are actual or reliably reconstructed fields available to the
-application.
+Do NOT invent dimensions or measures that are not actual or reliably
+reconstructed fields available to the application.
 
 ==================================================
 CHART TYPES
