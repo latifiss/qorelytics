@@ -704,10 +704,9 @@ Return the complete structured analysis.
       schema: analysisResultSchema,
       system: SYSTEM_PROMPT,
       prompt,
-      // Keep the request below the available OpenRouter credit budget.
-      // The previous request could reserve up to 16,000 output tokens,
-      // while the available balance only covered about 13,646.
-      maxOutputTokens: 12000,
+      // Keep the request safely below the current OpenRouter credit budget.
+      // 12,000 was rejected when the available balance dropped below it.
+      maxOutputTokens: 8000,
       temperature: 0.2,
     });
 
