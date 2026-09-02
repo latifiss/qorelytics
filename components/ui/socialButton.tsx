@@ -64,7 +64,7 @@ const SocialButton = ({ type, onClick, className = '' }: SocialButtonProps) => {
   const getLabel = () => {
     switch (type) {
       case 'google':
-        return 'Google'
+        return 'Continue with Google'
       case 'apple':
         return 'Apple'
       case 'facebook':
