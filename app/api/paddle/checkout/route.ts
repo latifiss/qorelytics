@@ -43,11 +43,29 @@ export async function POST(request: Request) {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, email: true, name: true, tier: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      tier: true,
+      paddleSubscriptionId: true,
+      paddleSubscriptionStatus: true,
+    },
   })
 
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
+  }
+
+  if (
+    user.paddleSubscriptionId &&
+    user.paddleSubscriptionStatus &&
+    !['canceled', 'past_due'].includes(user.paddleSubscriptionStatus)
+  ) {
+    return NextResponse.json(
+      { error: 'You already have a Paddle subscription. Use Manage to change your subscription.' },
+      { status: 409 }
+    )
   }
 
   return NextResponse.json({
