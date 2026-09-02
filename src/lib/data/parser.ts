@@ -103,8 +103,16 @@ function parseJson(text: string): ParsedDataset {
 }
 
 async function parsePdf(buffer: Buffer): Promise<ParsedDataset> {
+  // pdf-parse uses PDF.js internally. In Next.js/Vercel's server runtime,
+  // explicitly provide its Node canvas factory so PDF.js does not try to
+  // access browser globals such as DOMMatrix.
+  const { CanvasFactory } = await import("pdf-parse/worker");
   const { PDFParse } = await import("pdf-parse");
-  const parser = new PDFParse({ data: buffer });
+
+  const parser = new PDFParse({
+    data: buffer,
+    CanvasFactory,
+  });
 
   try {
     const result = await parser.getText();
