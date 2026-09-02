@@ -106,11 +106,6 @@ function coerceNumericValue(
 /* RAW TEXT EXTRACTION                                                        */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Recover repeated analytical records from a document parser's single
- * content row. This intentionally stays conservative and only activates
- * when the source clearly contains repeated date/category/value/order data.
- */
 function extractStructuredRowsFromRawText(
   rows: Record<string, unknown>[],
 ): Record<string, unknown>[] {
@@ -165,12 +160,6 @@ function getChartableRows(rows: Record<string, unknown>[]): Record<string, unkno
   return extractStructuredRowsFromRawText(rows);
 }
 
-/**
- * When the model returns no usable chart for a clearly chartable upload,
- * provide a small deterministic baseline. This is not a forced chart for
- * arbitrary files: it only activates when the raw source has recoverable
- * time/category/revenue records.
- */
 function getAutomaticChartSpecs(
   rows: Record<string, unknown>[],
 ): AnalysisChartSpec[] {
@@ -226,11 +215,6 @@ function chartSpecIsUsable(
   return dimensions.length > 0 && measures.length > 0;
 }
 
-/**
- * Keep the chart list and the rendered chart-data list in exactly the same
- * order. This prevents an invalid model-generated chart from shifting every
- * later [CHART:n] marker onto the wrong visualization.
- */
 function getEffectiveCharts(
   charts: AnalysisChartSpec[],
   rows: Record<string, unknown>[],
@@ -364,7 +348,12 @@ function formatLimitationsSection(limitations: string[]): string {
 }
 
 export function buildReportSections(input: BuildReportInput): ReportSection[] {
-  const effectiveCharts = getEffectiveCharts(input.charts, input.rows ?? []);
+  // buildChartDataFromAnalysis resolves/mutates the chart list first in the
+  // home client. When rows are not supplied here, preserve that effective
+  // list instead of validating it against an empty dataset and clearing it.
+  const effectiveCharts = input.rows
+    ? getEffectiveCharts(input.charts, input.rows)
+    : input.charts;
 
   const sections: ReportSection[] = input.sections.map((section) => ({
     title: section.title,
