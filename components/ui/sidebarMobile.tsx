@@ -12,6 +12,7 @@ import SidebarHeaderMobile from '../layout/sidebarHeaderMobile'
 import PointIcon from '@/public/icons/mono/point'
 import ChatHistory from './chatHistory'
 import { useUser } from '@/hooks/use-user'
+import { useBilling } from '@/hooks/use-billing'
 import { useChat } from '@/context/chatContext'
 
 interface SidebarMobileProps { onClose: () => void }
@@ -21,6 +22,7 @@ const SidebarMobile = ({ onClose }: SidebarMobileProps) => {
   const router = useRouter()
   const { startNewChat } = useChat()
   const { user, loading } = useUser()
+  const { tier } = useBilling()
   if (loading) return null
 
   const isActive = (path: string) => pathname === path
@@ -37,7 +39,7 @@ const SidebarMobile = ({ onClose }: SidebarMobileProps) => {
         <div className="relative"><AnimatePresence>{isActive('/pricing') && <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2, ease: 'easeInOut' }} className="absolute left-0 top-1/2 -translate-y-1/2 z-10"><PointIcon size={16} color="#7FF86C" /></motion.div>}</AnimatePresence><SidebarItem label="Pricing" href="/pricing" variant="internal" type="mobile" textColor="text-black dark:text-white" className={isActive('/pricing') ? 'pl-6' : ''} /></div>
         <div className="relative"><AnimatePresence>{isActive('/blog') && <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2, ease: 'easeInOut' }} className="absolute left-0 top-1/2 -translate-y-1/2 z-10"><PointIcon size={16} color="#7FF86C" /></motion.div>}</AnimatePresence><SidebarItem label="Our Blog" href="/blog" variant="external" type="mobile" textColor="text-black dark:text-white" className={isActive('/blog') ? 'pl-6' : ''} /></div>
         <div className="relative"><AnimatePresence>{isActive('/about') && <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2, ease: 'easeInOut' }} className="absolute left-0 top-1/2 -translate-y-1/2 z-10"><PointIcon size={16} color="#7FF86C" /></motion.div>}</AnimatePresence><SidebarItem label="About Us" href="/about" variant="external" type="mobile" textColor="text-black dark:text-white" className={isActive('/about') ? 'pl-6' : ''} /></div>
-        <div className="relative"><AnimatePresence>{isAuthActive && <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2, ease: 'easeInOut' }} className="absolute left-0 top-1/2 -translate-y-1/2 z-10"><PointIcon size={16} color="#7FF86C" /></motion.div>}</AnimatePresence><SidebarItemAuth label={user ? user.name : 'Sign Up'} href={user ? '/profile' : '/signin'} variant="external" type="mobile" state={user ? 'loggedin' : 'loggedout'} userData={user ? { name: user.name, email: user.email, avatar: user.image ?? '/images/default-avatar.svg', tier: 'free' } : undefined} textColor="text-black dark:text-white" className={isAuthActive ? 'pl-6' : ''} /></div>
+        <div className="relative"><AnimatePresence>{isAuthActive && <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2, ease: 'easeInOut' }} className="absolute left-0 top-1/2 -translate-y-1/2 z-10"><PointIcon size={16} color="#7FF86C" /></motion.div>}</AnimatePresence><SidebarItemAuth label={user ? user.name : 'Sign Up'} href={user ? '/profile' : '/signin'} variant="external" type="mobile" state={user ? 'loggedin' : 'loggedout'} userData={user ? { name: user.name, email: user.email, avatar: user.image ?? '/images/default-avatar.svg', tier } : undefined} textColor="text-black dark:text-white" className={isAuthActive ? 'pl-6' : ''} /></div>
       </div>
     </div>
   )
