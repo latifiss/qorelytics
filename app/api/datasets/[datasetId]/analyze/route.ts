@@ -20,8 +20,7 @@ export async function POST(request: Request, context: RouteContext) {
     const { datasetId } = await context.params;
     const body = (await request.json().catch(() => ({}))) as AnalyzeRequestBody;
     const provider = body.provider?.trim() || 'openrouter';
-    // Keep the Paddle branch analyzer exactly as-is; only swap the model to a free OpenRouter model.
-    const model = 'minimax/minimax-m3:free';
+    const model = 'deepseek/deepseek-v4-flash';
     const userQuestion = body.userQuestion?.trim();
     const messages = Array.isArray(body.messages) ? body.messages : [];
 
