@@ -20,21 +20,32 @@ export function useBilling() {
   useEffect(() => {
     let active = true
 
-    fetch('/api/billing/status')
-      .then(async (response) => {
-        if (!response.ok) return null
-        return response.json() as Promise<BillingStatus>
-      })
-      .then((data) => {
-        if (active && data) setBilling(data)
-      })
-      .catch(() => undefined)
-      .finally(() => {
+    const loadBilling = async () => {
+      try {
+        const response = await fetch('/api/billing/status', { cache: 'no-store' })
+        if (!response.ok) return
+        const data = await response.json() as BillingStatus
+        if (active) setBilling(data)
+      } catch {
+        // Keep the last known billing state.
+      } finally {
         if (active) setLoading(false)
-      })
+      }
+    }
+
+    void loadBilling()
+
+    const handleRefresh = () => {
+      void loadBilling()
+    }
+
+    window.addEventListener('qorelytics-billing-refresh', handleRefresh)
+    window.addEventListener('focus', handleRefresh)
 
     return () => {
       active = false
+      window.removeEventListener('qorelytics-billing-refresh', handleRefresh)
+      window.removeEventListener('focus', handleRefresh)
     }
   }, [])
 
