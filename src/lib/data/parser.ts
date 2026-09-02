@@ -1,8 +1,4 @@
 import Papa from "papaparse";
-import * as XLSX from "xlsx";
-import { PDFParse } from "pdf-parse";
-import mammoth from "mammoth";
-import WordExtractor from "word-extractor";
 
 import type { ParsedDataset } from "@/src/types/dataset";
 
@@ -40,7 +36,9 @@ function parseCsv(text: string): ParsedDataset {
   };
 }
 
-function parseSpreadsheet(buffer: Buffer): ParsedDataset {
+async function parseSpreadsheet(buffer: Buffer): Promise<ParsedDataset> {
+  const XLSX = await import("xlsx");
+
   const workbook = XLSX.read(buffer, {
     type: "buffer",
     cellDates: true,
@@ -105,6 +103,7 @@ function parseJson(text: string): ParsedDataset {
 }
 
 async function parsePdf(buffer: Buffer): Promise<ParsedDataset> {
+  const { PDFParse } = await import("pdf-parse");
   const parser = new PDFParse({ data: buffer });
 
   try {
@@ -125,6 +124,7 @@ async function parsePdf(buffer: Buffer): Promise<ParsedDataset> {
 }
 
 async function parseDocx(buffer: Buffer): Promise<ParsedDataset> {
+  const { default: mammoth } = await import("mammoth");
   const result = await mammoth.extractRawText({ buffer });
   const text = result.value.trim();
 
@@ -139,6 +139,7 @@ async function parseDocx(buffer: Buffer): Promise<ParsedDataset> {
 }
 
 async function parseDoc(buffer: Buffer): Promise<ParsedDataset> {
+  const { default: WordExtractor } = await import("word-extractor");
   const extractor = new WordExtractor();
   const document = await extractor.extract(buffer);
   const text = document.getBody().trim();
