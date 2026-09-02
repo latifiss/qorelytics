@@ -4,7 +4,7 @@ export const TIER_LIMITS = {
   free: {
     maxFileSizeBytes: 10 * 1024 * 1024,
     maxUploadsPerMonth: 10,
-    allowedExtensions: ["csv", "pdf", "doc", "docx"] as const,
+    allowedExtensions: ["csv", "xlsx", "xls", "json", "pdf", "doc", "docx"] as const,
   },
   pro: {
     maxFileSizeBytes: 70 * 1024 * 1024,
