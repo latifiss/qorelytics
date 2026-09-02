@@ -20,7 +20,7 @@ export async function POST(request: Request, context: RouteContext) {
     const { datasetId } = await context.params;
     const body = (await request.json().catch(() => ({}))) as AnalyzeRequestBody;
     const provider = body.provider?.trim() || 'openrouter';
-    const model = 'deepseek/deepseek-v4-flash';
+    const model = body.model?.trim() || 'deepseek/deepseek-chat';
     const userQuestion = body.userQuestion?.trim();
     const messages = Array.isArray(body.messages) ? body.messages : [];
 
