@@ -14,6 +14,7 @@ interface ButtonProps {
   type?: 'button' | 'submit' | 'reset';
   fullWidth?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  loadingText?: string;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -26,6 +27,7 @@ const Button: React.FC<ButtonProps> = ({
   type = 'button',
   fullWidth = false,
   size = 'md',
+  loadingText = 'Loading...',
 }) => {
   const getVariantStyles = () => {
     switch (variant) {
@@ -92,7 +94,7 @@ const Button: React.FC<ButtonProps> = ({
             size={size === 'sm' ? 16 : size === 'lg' ? 24 : 20}
             loading={loading}
           />
-          <span>Loading...</span>
+          <span>{loadingText}</span>
         </>
       ) : (
         children
