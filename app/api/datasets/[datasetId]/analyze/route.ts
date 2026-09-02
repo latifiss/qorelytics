@@ -20,7 +20,8 @@ export async function POST(request: Request, context: RouteContext) {
     const { datasetId } = await context.params;
     const body = (await request.json().catch(() => ({}))) as AnalyzeRequestBody;
     const provider = body.provider?.trim() || 'openrouter';
-    const model = body.model?.trim() || 'deepseek/deepseek-chat';
+    // Keep the Paddle branch analyzer exactly as-is; only swap the model to a free OpenRouter model.
+    const model = 'minimax/minimax-m3:free';
     const userQuestion = body.userQuestion?.trim();
     const messages = Array.isArray(body.messages) ? body.messages : [];
 
@@ -48,12 +49,6 @@ export async function POST(request: Request, context: RouteContext) {
     });
 
     try {
-      /*
-       * The first request in a conversation is a full analysis.
-       * Follow-ups are conversational questions about that analysis/data.
-       * Keep the existing analyzer and structured result contract, but give
-       * the model an explicit mode so it does not repeat the initial report.
-       */
       const isFollowUp = messages.length > 1;
       const analysisQuestion = isFollowUp && userQuestion
         ? `FOLLOW-UP MODE: Answer only the user's current follow-up question. Use the previous conversation, the original analysis, the deterministic dataset analysis, and the actual dataset as context. Do NOT repeat the original full analysis or recreate its report. Be concise and directly answer the question. Only include a chart if it materially helps answer this specific question; reuse/reference a previous finding or chart when possible. Do not generate multiple charts for a follow-up. Do not restate the dataset overview, limitations, or recommendations unless they are directly relevant to the question.\n\nCURRENT FOLLOW-UP QUESTION:\n${userQuestion}`
@@ -73,7 +68,6 @@ export async function POST(request: Request, context: RouteContext) {
         select: { id: true, datasetId: true, provider: true, model: true, result: true, status: true, startedAt: true, completedAt: true, createdAt: true },
       });
 
-      /* Persist the conversation without changing the existing AI response flow. */
       if (userQuestion && typeof result.response === 'string') {
         const existingChat = await prisma.chatSession.findFirst({
           where: { userId: session.user.id, datasetId: dataset.id },
