@@ -1,6 +1,6 @@
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
-import pdfParse from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 import mammoth from "mammoth";
 import WordExtractor from "word-extractor";
 
@@ -105,17 +105,23 @@ function parseJson(text: string): ParsedDataset {
 }
 
 async function parsePdf(buffer: Buffer): Promise<ParsedDataset> {
-  const result = await pdfParse(buffer);
-  const text = result.text.trim();
+  const parser = new PDFParse({ data: buffer });
 
-  if (!text) {
-    throw new Error("The PDF does not contain extractable text.");
+  try {
+    const result = await parser.getText();
+    const text = result.text.trim();
+
+    if (!text) {
+      throw new Error("The PDF does not contain extractable text.");
+    }
+
+    return {
+      rows: [{ content: text }],
+      columns: ["content"],
+    };
+  } finally {
+    await parser.destroy();
   }
-
-  return {
-    rows: [{ content: text }],
-    columns: ["content"],
-  };
 }
 
 async function parseDocx(buffer: Buffer): Promise<ParsedDataset> {
