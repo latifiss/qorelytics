@@ -6,6 +6,7 @@ import { cn } from '@/lib/cn'
 import Tabs from '@/components/ui/tabs'
 import PriceFeatureRow from '@/components/ui/priceFeatureRow'
 import ComparisonTable from '@/components/ui/comparisonTable'
+import BillingActionButton from '@/components/ui/billingActionButton'
 import {
   ProIcon,
   TeamIcon,
@@ -117,6 +118,13 @@ const PricingPage = () => {
       const monthlyPrice = typeof plan.price === 'object' ? plan.price.monthly : plan.price
       const yearlyTotal = monthlyPrice * 12
 
+      const buttonClassName = cn(
+        'w-full py-3 rounded-full font-medium transition-all duration-200',
+        plan.ctaVariant === 'primary' && 'bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90',
+        plan.ctaVariant === 'secondary' && 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-700',
+        plan.ctaVariant === 'outline' && 'border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white hover:bg-neutral-50 dark:hover:bg-neutral-900/50'
+      )
+
       return (
         <motion.div
           key={plan.id}
@@ -130,12 +138,8 @@ const PricingPage = () => {
         >
           <style jsx global>{`
             @keyframes rainbow-slide {
-              0% {
-                background-position: 0% 50%;
-              }
-              100% {
-                background-position: 200% 50%;
-              }
+              0% { background-position: 0% 50%; }
+              100% { background-position: 200% 50%; }
             }
 
             .pricing-pro-border {
@@ -150,19 +154,7 @@ const PricingPage = () => {
               inset: -4px;
               border-radius: 16px;
               padding: 4px;
-              background: linear-gradient(
-                90deg,
-                #ff4d4f,
-                #ff7a45,
-                #ffa940,
-                #fadb14,
-                #52c41a,
-                #13c2c2,
-                #1677ff,
-                #722ed1,
-                #eb2f96,
-                #ff4d4f
-              );
+              background: linear-gradient(90deg, #ff4d4f, #ff7a45, #ffa940, #fadb14, #52c41a, #13c2c2, #1677ff, #722ed1, #eb2f96, #ff4d4f);
               background-size: 200% 100%;
               -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
               -webkit-mask-composite: xor;
@@ -193,7 +185,7 @@ const PricingPage = () => {
 
           <ul className="space-y-3 flex-1 mb-8">
             {plan.features.map((feature, index) => (
-              <PriceFeatureRow 
+              <PriceFeatureRow
                 key={index}
                 icon={iconMap[feature.icon] || <SaveIcon size={24} />}
                 label={feature.label}
@@ -201,16 +193,23 @@ const PricingPage = () => {
             ))}
           </ul>
 
-          <button
-            className={cn(
-              'w-full py-3 rounded-full font-medium transition-all duration-200',
-              plan.ctaVariant === 'primary' && 'bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90',
-              plan.ctaVariant === 'secondary' && 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-700',
-              plan.ctaVariant === 'outline' && 'border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white hover:bg-neutral-50 dark:hover:bg-neutral-900/50'
-            )}
-          >
-            {plan.ctaText}
-          </button>
+          {isFree ? (
+            <button
+              type="button"
+              onClick={() => { window.location.href = '/' }}
+              className={buttonClassName}
+            >
+              {plan.ctaText}
+            </button>
+          ) : (
+            <BillingActionButton
+              tier={plan.id as 'pro' | 'team'}
+              interval={interval}
+              className={buttonClassName}
+            >
+              {plan.ctaText}
+            </BillingActionButton>
+          )}
         </motion.div>
       )
     })
@@ -218,17 +217,7 @@ const PricingPage = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#171b1d]">
-      <div
-        className="
-          container 
-          mx-auto 
-          px-6 
-          py-12
-          md:px-10
-          lg:px-12
-          xl:px-20
-        "
-      >
+      <div className="container mx-auto px-6 py-12 md:px-10 lg:px-12 xl:px-20">
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold font-text text-neutral-900 dark:text-white mb-4">Choose Your Plan</h1>
           <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto">
@@ -237,9 +226,9 @@ const PricingPage = () => {
         </div>
 
         <div className="max-w-md mx-auto mb-16">
-          <Tabs 
-            items={tabItems} 
-            variant="pill" 
+          <Tabs
+            items={tabItems}
+            variant="pill"
             defaultActiveId="monthly"
             onTabChange={(id) => setInterval(id as PricingInterval)}
           />
