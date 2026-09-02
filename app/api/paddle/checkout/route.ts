@@ -2,7 +2,8 @@ import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { auth } from '@/src/lib/auth/auth'
 import { prisma } from '@/src/lib/db/prisma'
-import { BillingInterval, BillingTier, getPaddlePriceId } from '@/src/lib/paddle'
+import { getPaddlePriceId } from '@/src/lib/paddle'
+import type { BillingInterval, BillingTier } from '@/src/lib/paddle'
 
 export const runtime = 'nodejs'
 
