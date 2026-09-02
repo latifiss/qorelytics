@@ -1,5 +1,8 @@
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
+import pdfParse from "pdf-parse";
+import mammoth from "mammoth";
+import WordExtractor from "word-extractor";
 
 import type { ParsedDataset } from "@/src/types/dataset";
 
@@ -101,6 +104,49 @@ function parseJson(text: string): ParsedDataset {
   };
 }
 
+async function parsePdf(buffer: Buffer): Promise<ParsedDataset> {
+  const result = await pdfParse(buffer);
+  const text = result.text.trim();
+
+  if (!text) {
+    throw new Error("The PDF does not contain extractable text.");
+  }
+
+  return {
+    rows: [{ content: text }],
+    columns: ["content"],
+  };
+}
+
+async function parseDocx(buffer: Buffer): Promise<ParsedDataset> {
+  const result = await mammoth.extractRawText({ buffer });
+  const text = result.value.trim();
+
+  if (!text) {
+    throw new Error("The Word document does not contain extractable text.");
+  }
+
+  return {
+    rows: [{ content: text }],
+    columns: ["content"],
+  };
+}
+
+async function parseDoc(buffer: Buffer): Promise<ParsedDataset> {
+  const extractor = new WordExtractor();
+  const document = await extractor.extract(buffer);
+  const text = document.getBody().trim();
+
+  if (!text) {
+    throw new Error("The Word document does not contain extractable text.");
+  }
+
+  return {
+    rows: [{ content: text }],
+    columns: ["content"],
+  };
+}
+
 export async function parseDataset(
   file: File,
   extension: string,
@@ -121,6 +167,24 @@ export async function parseDataset(
     const arrayBuffer = await file.arrayBuffer();
 
     return parseSpreadsheet(Buffer.from(arrayBuffer));
+  }
+
+  if (extension === "pdf") {
+    const arrayBuffer = await file.arrayBuffer();
+
+    return parsePdf(Buffer.from(arrayBuffer));
+  }
+
+  if (extension === "docx") {
+    const arrayBuffer = await file.arrayBuffer();
+
+    return parseDocx(Buffer.from(arrayBuffer));
+  }
+
+  if (extension === "doc") {
+    const arrayBuffer = await file.arrayBuffer();
+
+    return parseDoc(Buffer.from(arrayBuffer));
   }
 
   throw new Error(`Unsupported file extension: ${extension}`);
