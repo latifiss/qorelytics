@@ -21,7 +21,7 @@ function verifyPaddleSignature(rawBody: string, signature: string, secret: strin
   if (!Number.isFinite(timestampNumber)) return false
 
   const age = Math.abs(Date.now() / 1000 - timestampNumber)
-  if (age > 5 * 60) return false
+  if (age > 5) return false
 
   const signedPayload = `${timestamp}:${rawBody}`
   const expected = createHmac('sha256', secret).update(signedPayload).digest('hex')
