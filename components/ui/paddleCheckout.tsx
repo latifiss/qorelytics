@@ -35,10 +35,16 @@ export default function PaddleCheckout({ tier, interval, children, className }: 
           locale: 'en',
         },
       },
+      eventCallback: (event) => {
+        if (event.name === 'checkout.completed') {
+          window.dispatchEvent(new Event('qorelytics-billing-refresh'))
+          router.refresh()
+        }
+      },
     }).then((instance) => {
       if (instance) setPaddle(instance)
     })
-  }, [])
+  }, [router])
 
   const handleClick = async () => {
     if (!user) {
