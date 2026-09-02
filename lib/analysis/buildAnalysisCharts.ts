@@ -166,15 +166,15 @@ function getChartableRows(rows: Record<string, unknown>[]): Record<string, unkno
 }
 
 /**
- * If the model does not return a chart for an upload with no question, give
- * the UI a deterministic baseline visualization when the source itself is
- * clearly chartable. This is a fallback, not a forced chart for every file.
+ * When the model returns no usable chart for a clearly chartable upload,
+ * provide a small deterministic baseline. This is not a forced chart for
+ * arbitrary files: it only activates when the raw source has recoverable
+ * time/category/revenue records.
  */
 function getAutomaticChartSpecs(
   rows: Record<string, unknown>[],
 ): AnalysisChartSpec[] {
   const chartRows = getChartableRows(rows);
-
   if (chartRows.length < 2) return [];
 
   const columns = Object.keys(chartRows[0] ?? {});
@@ -209,12 +209,52 @@ function getAutomaticChartSpecs(
   return specs;
 }
 
+function chartSpecIsUsable(
+  chart: AnalysisChartSpec,
+  rows: Record<string, unknown>[],
+): boolean {
+  if (!chart.dimensions.length || !chart.measures.length) return false;
+
+  const dimensions = chart.dimensions
+    .map((dimension) => resolveColumnName(rows, dimension))
+    .filter((dimension): dimension is string => dimension !== null);
+
+  const measures = chart.measures
+    .map((measure) => resolveColumnName(rows, measure))
+    .filter((measure): measure is string => measure !== null);
+
+  return dimensions.length > 0 && measures.length > 0;
+}
+
+/**
+ * Keep the chart list and the rendered chart-data list in exactly the same
+ * order. This prevents an invalid model-generated chart from shifting every
+ * later [CHART:n] marker onto the wrong visualization.
+ */
 function getEffectiveCharts(
   charts: AnalysisChartSpec[],
   rows: Record<string, unknown>[],
 ): AnalysisChartSpec[] {
-  if (charts.length > 0) return charts;
-  return getAutomaticChartSpecs(rows);
+  const chartRows = getChartableRows(rows);
+
+  const usableModelCharts = charts.filter((chart) =>
+    chartSpecIsUsable(chart, chartRows),
+  );
+
+  if (usableModelCharts.length > 0) {
+    if (charts.length !== usableModelCharts.length) {
+      charts.splice(0, charts.length, ...usableModelCharts);
+    }
+    return usableModelCharts;
+  }
+
+  const automaticCharts = getAutomaticChartSpecs(rows);
+
+  if (automaticCharts.length > 0) {
+    charts.splice(0, charts.length, ...automaticCharts);
+  }
+
+  return automaticCharts;
 }
 
 function buildChartRows(
@@ -271,7 +311,6 @@ export function buildChartDataFromAnalysis(
 
   const effectiveCharts = getEffectiveCharts(charts, rows);
   const chartRows = getChartableRows(rows);
-
   if (!effectiveCharts.length || !chartRows.length) return [];
 
   return effectiveCharts
