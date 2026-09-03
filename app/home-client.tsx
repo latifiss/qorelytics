@@ -17,6 +17,7 @@ import {
   buildReportSections,
   getDatasetRows,
 } from '@/lib/analysis/buildAnalysisCharts';
+import Image from 'next/image';
 
 interface HomeClientProps {
   userName?: string;
@@ -220,48 +221,45 @@ function isDatasetProfile(value: unknown): value is DatasetProfile {
   );
 }
 
-function formatFileSize(size: number): string {
-  if (!Number.isFinite(size) || size <= 0) {
-    return '';
+const fileTypeIcons: Record<string, string> = {
+  pdf: '/images/file-types/pdf.svg',
+  word: '/images/file-types/word.svg',
+  csv: '/images/file-types/csv.svg',
+  excel: '/images/file-types/excel.svg',
+};
+
+function getFileIcon(fileName: string, fileType: string): string {
+  const extension = fileName.split('.').pop()?.toLowerCase() ?? '';
+  const normalizedType = fileType.toLowerCase();
+
+  if (fileTypeIcons[extension]) {
+    return fileTypeIcons[extension];
   }
 
-  if (size < 1024) {
-    return `${size} B`;
+  if (fileTypeIcons[normalizedType]) {
+    return fileTypeIcons[normalizedType];
   }
 
-  if (size < 1024 * 1024) {
-    return `${(size / 1024).toFixed(1)} KB`;
+  if (normalizedType.includes('pdf')) {
+    return fileTypeIcons.pdf;
   }
 
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-}
+  if (
+    normalizedType.includes('word') ||
+    normalizedType.includes('document')
+  ) {
+    return fileTypeIcons.word;
+  }
 
-function FileIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      className="h-5 w-5"
-      aria-hidden="true"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M14 2.75H6.75A1.75 1.75 0 0 0 5 4.5v15A1.75 1.75 0 0 0 6.75 21h10.5A1.75 1.75 0 0 0 19 19.25V7.75L14 2.75Z"
-      />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M14 2.75v5h5"
-      />
-      <path
-        strokeLinecap="round"
-        d="M8.5 13h7M8.5 16.25h5"
-      />
-    </svg>
-  );
+  if (normalizedType.includes('excel') || normalizedType.includes('sheet')) {
+    return fileTypeIcons.excel;
+  }
+
+  if (normalizedType.includes('csv')) {
+    return fileTypeIcons.csv;
+  }
+
+  return '/images/file-icons/default.svg';
 }
 
 function UserMessage({
@@ -271,29 +269,28 @@ function UserMessage({
   message: string;
   attachment?: UserAttachment;
 }) {
-  return (
-    <div className="w-full flex justify-end">
-      <div className="max-w-[80%] rounded-xl border border-emerald-100/80 bg-emerald-50/60 px-4 py-3 text-sm leading-relaxed text-neutral-900 shadow-[0_2px_0_rgba(16,185,129,0.12),0_3px_8px_rgba(15,23,42,0.06)] dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-white dark:shadow-[0_2px_0_rgba(52,211,153,0.10),0_3px_8px_rgba(0,0,0,0.12)]">
-        {attachment && (
-          <div className="mb-3 flex items-center gap-3 rounded-lg border border-emerald-100 bg-white/70 px-3 py-2.5 dark:border-emerald-900/40 dark:bg-neutral-900/40">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
-              <FileIcon />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-xs font-medium text-neutral-900 dark:text-white">
-                {attachment.name}
-              </p>
-              <p className="mt-0.5 text-[11px] text-neutral-500 dark:text-neutral-400">
-                {attachment.type || 'File'}
-                {formatFileSize(attachment.size)
-                  ? ` · ${formatFileSize(attachment.size)}`
-                  : ''}
-              </p>
-            </div>
-          </div>
-        )}
+  const displayMessage =
+    attachment && message === `Analyze ${attachment.name}` ? '' : message;
 
-        <div className="whitespace-pre-wrap">{message}</div>
+  return (
+    <div className="w-full flex flex-col items-end gap-2">
+      {attachment && (
+        <div className="flex max-w-[80%] min-w-0 items-center gap-2">
+          <Image
+            src={getFileIcon(attachment.name, attachment.type)}
+            alt=""
+            width={20}
+            height={20}
+            className="h-5 w-5 shrink-0 object-contain"
+          />
+          <span className="truncate text-sm font-medium text-neutral-700 dark:text-neutral-200">
+            {attachment.name}
+          </span>
+        </div>
+      )}
+
+      <div className="max-w-[80%] rounded-xl border border-emerald-500 bg-emerald-50/60 px-4 py-3 text-sm leading-relaxed text-neutral-900 shadow-[0_2px_0_rgba(16,185,129,0.28),0_3px_8px_rgba(16,185,129,0.12)] dark:border-emerald-500/70 dark:bg-emerald-950/20 dark:text-white dark:shadow-[0_2px_0_rgba(52,211,153,0.22),0_3px_8px_rgba(52,211,153,0.10)]">
+        <div className="whitespace-pre-wrap">{displayMessage}</div>
       </div>
     </div>
   );
