@@ -139,7 +139,7 @@ const SidebarItemAuth: React.FC<SidebarItemAuthProps> = ({
           />
         </div>
       )}
-      <span className={getTextStyles()}>{getDisplayName()}</span>
+      <span className={cn(getTextStyles(), 'min-w-0 truncate whitespace-nowrap')}>{getDisplayName()}</span>
       {isExternal && !isLoggedIn && (
         <ArrowRightIcon
           size={getIconSize()}
