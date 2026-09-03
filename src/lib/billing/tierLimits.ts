@@ -4,17 +4,17 @@ export const TIER_LIMITS = {
   free: {
     maxFileSizeBytes: 10 * 1024 * 1024,
     maxUploadsPerMonth: 10,
-    allowedExtensions: ["csv", "xlsx", "xls", "json", "pdf", "doc", "docx"] as const,
+    allowedExtensions: ["csv", "pdf", "doc", "docx"] as const,
   },
   pro: {
     maxFileSizeBytes: 70 * 1024 * 1024,
     maxUploadsPerMonth: null,
-    allowedExtensions: ["csv", "xlsx", "xls", "json", "pdf", "doc", "docx"] as const,
+    allowedExtensions: ["csv", "xlsx", "xls", "pdf", "doc", "docx"] as const,
   },
   team: {
     maxFileSizeBytes: 200 * 1024 * 1024,
     maxUploadsPerMonth: null,
-    allowedExtensions: ["csv", "xlsx", "xls", "json", "pdf", "doc", "docx"] as const,
+    allowedExtensions: ["csv", "xlsx", "xls", "pdf", "doc", "docx"] as const,
   },
 } satisfies Record<BillingTier, {
   maxFileSizeBytes: number;
