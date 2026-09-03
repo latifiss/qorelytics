@@ -10,12 +10,14 @@ import Logo from '@/public/icons/logo/logo';
 import LogoWordmark from '@/public/icons/logo/logoWordmark';
 import { useChat } from '@/context/chatContext';
 import { useRouter, usePathname } from 'next/navigation';
+import { authClient } from '@/src/lib/auth/client';
 
 const AltHeader = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { theme } = useTheme();
   const { startNewChat } = useChat();
+  const { data: session } = authClient.useSession();
   const router = useRouter();
   const pathname = usePathname();
   const isDark = theme === 'dark';
@@ -63,6 +65,10 @@ const AltHeader = () => {
     router.push('/');
   };
 
+  const handleHeaderClick = () => {
+    router.push(session?.user ? '/' : '/about');
+  };
+
   return (
     <>
       <motion.div
@@ -81,7 +87,7 @@ const AltHeader = () => {
           </div>
         </div>
         
-        <div className="flex-1 flex justify-center relative">
+        <div className="flex-1 flex justify-center relative cursor-pointer" onClick={handleHeaderClick}>
           <AnimatePresence mode="wait">
             {isScrolled ? (
               <motion.div
