@@ -21,29 +21,39 @@ export default function PaddleCheckout({ tier, interval, children, className }: 
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const token = process.env.PADDLE_CLIENT_TOKEN
-    if (!token) return
+    let cancelled = false
 
-    initializePaddle({
-      token,
-      environment: process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT === 'sandbox' ? 'sandbox' : 'production',
-      checkout: {
-        settings: {
-          displayMode: 'overlay',
-          variant: 'one-page',
-          theme: 'light',
-          locale: 'en',
-        },
-      },
-      eventCallback: (event) => {
-        if (event.name === 'checkout.completed') {
-          window.dispatchEvent(new Event('qorelytics-billing-refresh'))
-          router.refresh()
-        }
-      },
-    }).then((instance) => {
-      if (instance) setPaddle(instance)
-    })
+    fetch('/api/paddle/config')
+      .then((response) => response.json())
+      .then(({ token, environment }) => {
+        if (cancelled || !token) return
+
+        initializePaddle({
+          token,
+          environment,
+          checkout: {
+            settings: {
+              displayMode: 'overlay',
+              variant: 'one-page',
+              theme: 'light',
+              locale: 'en',
+            },
+          },
+          eventCallback: (event) => {
+            if (event.name === 'checkout.completed') {
+              window.dispatchEvent(new Event('qorelytics-billing-refresh'))
+              router.refresh()
+            }
+          },
+        }).then((instance) => {
+          if (!cancelled && instance) setPaddle(instance)
+        })
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
   }, [router])
 
   const handleClick = async () => {
@@ -84,7 +94,11 @@ export default function PaddleCheckout({ tier, interval, children, className }: 
 
   return (
     <button type="button" onClick={handleClick} disabled={loading} className={className}>
-      {loading ? 'Loading…' : children}
+      {loading ? (
+        <span className="inline-flex items-center justify-center" aria-label="Loading">
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        </span>
+      ) : children}
     </button>
   )
 }
