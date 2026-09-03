@@ -22,10 +22,17 @@ export default function PaddleCheckout({ tier, interval, children, className }: 
 
   useEffect(() => {
     let cancelled = false
+    let activeTransactionId: string | null = null
+
+    console.log('[Qorelytics Billing] Initializing Paddle checkout', { tier, interval })
 
     fetch('/api/paddle/config')
-      .then((response) => response.json())
+      .then(async (response) => {
+        console.log('[Qorelytics Billing] Paddle config response', { status: response.status })
+        return response.json()
+      })
       .then(({ token, environment }) => {
+        console.log('[Qorelytics Billing] Paddle config loaded', { environment, hasToken: Boolean(token) })
         if (cancelled || !token) return
 
         initializePaddle({
@@ -40,34 +47,45 @@ export default function PaddleCheckout({ tier, interval, children, className }: 
             },
           },
           eventCallback: (event) => {
+            console.log('[Qorelytics Billing] Paddle event', event.name, event)
+
             if (event.name === 'checkout.completed') {
-              window.dispatchEvent(new Event('qorelytics-billing-refresh'))
+              console.log('[Qorelytics Billing] Checkout completed', { transactionId: activeTransactionId })
+              window.dispatchEvent(new CustomEvent('qorelytics-billing-refresh', {
+                detail: { transactionId: activeTransactionId },
+              }))
               router.refresh()
             }
           },
         }).then((instance) => {
+          console.log('[Qorelytics Billing] Paddle initialized', { initialized: Boolean(instance) })
           if (!cancelled && instance) setPaddle(instance)
         })
       })
-      .catch(() => {})
+      .catch((error) => {
+        console.error('[Qorelytics Billing] Paddle initialization failed', error)
+      })
 
     return () => {
       cancelled = true
     }
-  }, [router])
+  }, [router, tier, interval])
 
   const handleClick = async () => {
     if (!user) {
+      console.log('[Qorelytics Billing] Checkout blocked: no authenticated user')
       router.push('/signin')
       return
     }
 
     if (!paddle) {
+      console.error('[Qorelytics Billing] Checkout blocked: Paddle is not initialized')
       toast.error('Payment checkout is not ready yet. Please try again.')
       return
     }
 
     setLoading(true)
+    console.log('[Qorelytics Billing] Starting checkout', { tier, interval, userId: user.id })
 
     try {
       const response = await fetch('/api/paddle/checkout', {
@@ -77,15 +95,32 @@ export default function PaddleCheckout({ tier, interval, children, className }: 
       })
 
       const data = await response.json()
+      console.log('[Qorelytics Billing] Checkout API response', {
+        status: response.status,
+        ok: response.ok,
+        transactionId: data.transactionId,
+        error: data.error,
+      })
 
       if (!response.ok) {
         throw new Error(data.error || 'Unable to start checkout')
       }
 
+      if (!data.transactionId) {
+        throw new Error('Checkout did not return a transaction ID')
+      }
+
+      // Keep the transaction ID available to the Paddle event callback so the
+      // billing status endpoint can verify the completed transaction directly.
+      // The callback belongs to the Paddle instance created above.
+      ;(window as Window & { __qorelyticsPaddleTransactionId?: string }).__qorelyticsPaddleTransactionId = data.transactionId
+      console.log('[Qorelytics Billing] Opening Paddle checkout', { transactionId: data.transactionId })
+
       paddle.Checkout.open({
         transactionId: data.transactionId,
       })
     } catch (error) {
+      console.error('[Qorelytics Billing] Checkout failed', error)
       toast.error(error instanceof Error ? error.message : 'Unable to start checkout')
     } finally {
       setLoading(false)
