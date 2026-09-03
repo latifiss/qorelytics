@@ -65,6 +65,57 @@ export async function generateMetadata({
   }
 }
 
-export default function BlogArticleLayout({ children }: { children: React.ReactNode }) {
-  return children
+export default async function BlogArticleLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
+  const article: Article | null = await client.fetch(query, { slug }, { next: { revalidate: 60 } })
+
+  const structuredData = article
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'BlogPosting',
+        '@id': `${siteUrl}/blog/${slug}#article`,
+        headline: article.title,
+        description: `Read ${article.title} from ${siteName} for practical insights on AI, data analytics, business intelligence, and data visualization.`,
+        url: `${siteUrl}/blog/${slug}`,
+        mainEntityOfPage: {
+          '@type': 'WebPage',
+          '@id': `${siteUrl}/blog/${slug}`,
+        },
+        datePublished: article.publishedAt,
+        author: article.author
+          ? { '@type': 'Person', name: article.author }
+          : { '@type': 'Organization', name: siteName },
+        publisher: {
+          '@type': 'Organization',
+          name: siteName,
+          url: siteUrl,
+        },
+        image: article.imageUrl
+          ? {
+              '@type': 'ImageObject',
+              url: article.imageUrl,
+              caption: article.imageAlt ?? article.title,
+            }
+          : undefined,
+        keywords: article.tags?.join(', '),
+      }
+    : null
+
+  return (
+    <>
+      {structuredData && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+      )}
+      {children}
+    </>
+  )
 }
