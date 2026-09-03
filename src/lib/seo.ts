@@ -33,9 +33,10 @@ export function buildMetadata({
   noIndex?: boolean
 }): Metadata {
   const canonical = `${siteUrl}${path === '/' ? '' : path}`
+  const pageTitle = title || defaultTitle
 
   return {
-    title: title ? `${title} | ${siteName}` : defaultTitle,
+    title: title ? { absolute: `${title} | ${siteName}` } : pageTitle,
     description,
     keywords,
     alternates: { canonical },
@@ -46,13 +47,13 @@ export function buildMetadata({
       type: 'website',
       url: canonical,
       siteName,
-      title: title ? `${title} | ${siteName}` : defaultTitle,
+      title: pageTitle,
       description,
       locale: 'en_US',
     },
     twitter: {
       card: 'summary_large_image',
-      title: title ? `${title} | ${siteName}` : defaultTitle,
+      title: pageTitle,
       description,
     },
   }
