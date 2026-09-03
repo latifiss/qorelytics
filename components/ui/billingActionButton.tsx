@@ -21,18 +21,19 @@ export default function BillingActionButton({ tier, interval, children, classNam
   const { user, loading: userLoading } = useUser()
   const { tier: currentTier, loading: billingLoading } = useBilling()
 
-  const handleManage = async () => {
+  const handleCancel = async () => {
     try {
-      const response = await fetch('/api/paddle/manage')
+      const response = await fetch('/api/paddle/cancel', { method: 'POST' })
       const data = await response.json()
 
-      if (!response.ok || !data.url) {
-        throw new Error(data.error || 'Unable to open subscription management')
+      if (!response.ok) {
+        throw new Error(data.error || 'Unable to cancel subscription')
       }
 
-      window.location.href = data.url
+      window.dispatchEvent(new Event('qorelytics-billing-refresh'))
+      toast.success('Your subscription has been scheduled for cancellation.')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to open subscription management')
+      toast.error(error instanceof Error ? error.message : 'Unable to cancel subscription')
     }
   }
 
@@ -52,11 +53,19 @@ export default function BillingActionButton({ tier, interval, children, classNam
     )
   }
 
+  if (currentTier === tier) {
+    return (
+      <button type="button" onClick={handleCancel} className={className}>
+        Cancel subscription
+      </button>
+    )
+  }
+
   if (tierRank[currentTier] > 0) {
     return (
-      <button type="button" onClick={handleManage} className={className}>
-        Manage
-      </button>
+      <PaddleCheckout tier={tier} interval={interval} className={className}>
+        {children}
+      </PaddleCheckout>
     )
   }
 
