@@ -9,6 +9,7 @@ interface ButtonProps {
   onClick?: () => void;
   variant?: 'primary' | 'secondary' | 'skip';
   loading?: boolean;
+  loadingText?: string;
   disabled?: boolean;
   className?: string;
   type?: 'button' | 'submit' | 'reset';
@@ -21,6 +22,7 @@ const Button: React.FC<ButtonProps> = ({
   onClick,
   variant = 'primary',
   loading = false,
+  loadingText = 'Loading...',
   disabled = false,
   className = '',
   type = 'button',
@@ -92,7 +94,7 @@ const Button: React.FC<ButtonProps> = ({
             size={size === 'sm' ? 16 : size === 'lg' ? 24 : 20}
             loading={loading}
           />
-          <span>Loading...</span>
+          <span>{loadingText}</span>
         </>
       ) : (
         children
