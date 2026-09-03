@@ -7,6 +7,34 @@ export const metadata: Metadata = buildMetadata({
   path: '/about',
 })
 
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': 'https://qorelytics.vercel.app/#organization',
+      name: 'Qorelytics',
+      url: 'https://qorelytics.vercel.app',
+    },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Qorelytics',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web',
+      description: 'AI-powered data analytics for analyzing CSV and Excel business data, discovering trends, generating insights, and creating visualizations.',
+      url: 'https://qorelytics.vercel.app/about',
+    },
+  ],
+}
+
 export default function AboutLayout({ children }: { children: React.ReactNode }) {
-  return children
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      {children}
+    </>
+  )
 }
