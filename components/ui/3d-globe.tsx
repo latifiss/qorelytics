@@ -129,6 +129,14 @@ const DEFAULT_EARTH_TEXTURE =
 const DEFAULT_BUMP_TEXTURE =
   "/textures/earth-topology.png";
 
+// Start loading the globe textures as soon as this module is loaded so the
+// globe can render with the rest of the page instead of waiting for the
+// texture requests to begin after the Canvas mounts.
+useTexture.preload([
+  DEFAULT_EARTH_TEXTURE,
+  DEFAULT_BUMP_TEXTURE,
+]);
+
 // ============================================================================
 // Utility Functions
 // ============================================================================
@@ -248,7 +256,7 @@ function Marker({
     useCallback(() => {
       setHovered(false);
       onHover?.(null);
-    }, [onHover]);
+    }, [marker, onHover]);
 
   const handleClick =
     useCallback(() => {
