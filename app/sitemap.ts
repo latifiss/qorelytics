@@ -15,6 +15,7 @@ type BlogPost = {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     { url: `${siteUrl}/about`, changeFrequency: 'monthly', priority: 0.9 },
+    { url: `${siteUrl}/intro`, changeFrequency: 'weekly', priority: 0.95 },
     { url: `${siteUrl}/pricing`, changeFrequency: 'weekly', priority: 0.9 },
     { url: `${siteUrl}/blog`, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${siteUrl}/privacy`, changeFrequency: 'yearly', priority: 0.3 },
