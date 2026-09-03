@@ -41,7 +41,7 @@
         "yearly": 182
       },
       "description": "For professionals who need advanced analytics",
-      "ctaText": "Start Pro Trial",
+      "ctaText": "Subscribe to Pro",
       "ctaVariant": "primary",
       "features": [
         {
@@ -82,7 +82,7 @@
         "yearly": 758
       },
       "description": "For teams and enterprises needing full control",
-      "ctaText": "Start Team Trial",
+      "ctaText": "Subscribe to Team",
       "ctaVariant": "primary",
       "features": [
         {
@@ -113,4 +113,3 @@
     }
   ]
 }
-
