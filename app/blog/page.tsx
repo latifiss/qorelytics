@@ -75,6 +75,7 @@ export default async function BlogPage() {
               title={post.title}
               date={post.publishedAt}
               imageUrl={post.imageUrl}
+              imageAlt={post.title}
               tags={post.tags ?? []}
               href={`/blog/${post.slug}`}
             />
