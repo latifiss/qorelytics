@@ -343,7 +343,7 @@ export default function Home({ userName }: HomeClientProps) {
   const [activeTurnId, setActiveTurnId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const started = turns.length > 0;
+  const started = turns.length > 0 || Boolean(selectedChatId);
 
   const scrollToBottom = useCallback(() => {
     if (userScrolledUpRef.current) {
