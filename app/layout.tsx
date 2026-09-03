@@ -23,7 +23,6 @@ export const metadata: Metadata = {
   },
   openGraph: { type: "website", locale: "en_US", url: siteUrl, siteName, title: defaultTitle, description: defaultDescription },
   twitter: { card: "summary_large_image", title: defaultTitle, description: defaultDescription },
-  icons: { icon: "/favicon.ico", apple: "/apple-icon.png" },
 };
 
 const structuredData = {
@@ -34,7 +33,7 @@ const structuredData = {
       "@id": `${siteUrl}/#organization`,
       name: siteName,
       url: siteUrl,
-      logo: `${siteUrl}/icon0.svg`,
+      logo: `${siteUrl}/images/logo/logo-wordmark.svg`,
     },
     {
       "@type": "WebSite",
