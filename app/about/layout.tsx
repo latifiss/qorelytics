@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { buildMetadata } from '@/src/lib/seo'
+import { buildMetadata, siteName, siteUrl } from '@/src/lib/seo'
+import faqData from '@/data/faq.json'
 
 export const metadata: Metadata = buildMetadata({
   title: 'AI Data Analytics Platform',
@@ -12,17 +13,29 @@ const structuredData = {
   '@graph': [
     {
       '@type': 'Organization',
-      '@id': 'https://qorelytics.vercel.app/#organization',
-      name: 'Qorelytics',
-      url: 'https://qorelytics.vercel.app',
+      '@id': `${siteUrl}/#organization`,
+      name: siteName,
+      url: siteUrl,
     },
     {
       '@type': 'SoftwareApplication',
-      name: 'Qorelytics',
+      name: siteName,
       applicationCategory: 'BusinessApplication',
       operatingSystem: 'Web',
       description: 'AI-powered data analytics for analyzing CSV and Excel business data, discovering trends, generating insights, and creating visualizations.',
-      url: 'https://qorelytics.vercel.app/about',
+      url: `${siteUrl}/about`,
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${siteUrl}/about#faq`,
+      mainEntity: faqData.map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.answer,
+        },
+      })),
     },
   ],
 }
