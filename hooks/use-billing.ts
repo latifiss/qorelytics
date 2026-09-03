@@ -19,13 +19,20 @@ export function useBilling() {
 
   useEffect(() => {
     let active = true
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null
 
-    const loadBilling = async () => {
+    const loadBilling = async (retries = 0) => {
       try {
         const response = await fetch('/api/billing/status', { cache: 'no-store' })
         if (!response.ok) return
         const data = await response.json() as BillingStatus
         if (active) setBilling(data)
+
+        if (active && retries > 0 && data.tier === 'free') {
+          refreshTimer = setTimeout(() => {
+            void loadBilling(retries - 1)
+          }, 1000)
+        }
       } catch {
         // Keep the last known billing state.
       } finally {
@@ -36,7 +43,8 @@ export function useBilling() {
     void loadBilling()
 
     const handleRefresh = () => {
-      void loadBilling()
+      if (refreshTimer) clearTimeout(refreshTimer)
+      void loadBilling(10)
     }
 
     window.addEventListener('qorelytics-billing-refresh', handleRefresh)
@@ -44,6 +52,7 @@ export function useBilling() {
 
     return () => {
       active = false
+      if (refreshTimer) clearTimeout(refreshTimer)
       window.removeEventListener('qorelytics-billing-refresh', handleRefresh)
       window.removeEventListener('focus', handleRefresh)
     }
