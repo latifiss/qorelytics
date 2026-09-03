@@ -9,7 +9,7 @@ import type { BillingTier } from '@/src/lib/billing/tierLimits';
 import { getTierLimits } from '@/src/lib/billing/tierLimits';
 
 interface SelectionModalProps { isOpen: boolean; onClose: () => void; onSelect: (file: File, type: string) => void; tier?: BillingTier; }
-type FileType = 'pdf' | 'word' | 'csv' | 'json' | 'excel';
+type FileType = 'pdf' | 'word' | 'csv' | 'excel';
 interface FileOption { id: FileType; label: string; icon: string; accept: string; extension: string; }
 
 const SelectionModal: React.FC<SelectionModalProps> = ({ isOpen, onClose, onSelect, tier = 'free' }) => {
@@ -21,7 +21,6 @@ const SelectionModal: React.FC<SelectionModalProps> = ({ isOpen, onClose, onSele
     { id: 'pdf', label: 'PDF File', icon: '/images/file-types/pdf.svg', accept: '.pdf,application/pdf', extension: 'pdf' },
     { id: 'word', label: 'Word File', icon: '/images/file-types/word.svg', accept: '.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document', extension: 'doc' },
     { id: 'csv', label: 'CSV File', icon: '/images/file-types/csv.svg', accept: '.csv,text/csv', extension: 'csv' },
-    { id: 'json', label: 'JSON File', icon: '/images/file-types/json.svg', accept: '.json,application/json', extension: 'json' },
     { id: 'excel', label: 'Excel File', icon: '/images/file-types/excel.svg', accept: '.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', extension: 'xlsx' },
   ];
   const isAllowed = (option: FileOption) => (limits.allowedExtensions as readonly string[]).includes(option.extension);
