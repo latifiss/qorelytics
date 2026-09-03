@@ -9,7 +9,7 @@ import SidebarMobile from '@/components/ui/sidebarMobile';
 import Logo from '@/public/icons/logo/logo';
 import LogoWordmark from '@/public/icons/logo/logoWordmark';
 import { useChat } from '@/context/chatContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 const AltHeader = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -17,7 +17,9 @@ const AltHeader = () => {
   const { theme } = useTheme();
   const { startNewChat } = useChat();
   const router = useRouter();
+  const pathname = usePathname();
   const isDark = theme === 'dark';
+  const isChatPage = pathname === '/';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -129,20 +131,22 @@ const AltHeader = () => {
           </AnimatePresence>
         </div>
 
-        <button
-          type="button"
-          onClick={handleNewChat}
-          aria-label="New Chat"
-          className="flex items-center gap-0.5 cursor-pointer hover:opacity-80 transition-opacity"
-        >
-          <p className="text-xl hidden">New</p>
-          <div className="block dark:hidden">
-            <PlusIcon size={32} color="#000000" />
-          </div>
-          <div className="hidden dark:block">
-            <PlusIcon size={32} color="#ffffff" />
-          </div>
-        </button>
+        {isChatPage && (
+          <button
+            type="button"
+            onClick={handleNewChat}
+            aria-label="New Chat"
+            className="flex items-center gap-0.5 cursor-pointer hover:opacity-80 transition-opacity"
+          >
+            <p className="text-xl hidden">New</p>
+            <div className="block dark:hidden">
+              <PlusIcon size={32} color="#000000" />
+            </div>
+            <div className="hidden dark:block">
+              <PlusIcon size={32} color="#ffffff" />
+            </div>
+          </button>
+        )}
       </motion.div>
 
       <AnimatePresence>
