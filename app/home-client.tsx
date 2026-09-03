@@ -881,12 +881,6 @@ export default function Home({ userName }: HomeClientProps) {
             </div>
           )}
 
-          {error && (
-            <div className="mb-6 px-4 py-3 text-sm border border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-300">
-              {error}
-            </div>
-          )}
-
           {started && (
             <div className="space-y-8">
               {turns.map((turn) => {
@@ -966,6 +960,34 @@ export default function Home({ userName }: HomeClientProps) {
 
       <div className="fixed bottom-0 left-0 right-0 lg:left-80 bg-linear-to-t from-white dark:from-[#171b1d] via-white/95 dark:via-[#171b1d]/95 to-transparent pt-8 pb-4 px-4 z-40">
         <div className="max-w-2xl mx-auto">
+          {error && (
+            <div className="mb-2 flex items-center justify-between rounded-xl border border-[#fa2413] bg-[#fa2413] px-4 py-3 text-sm text-white">
+              <span>{error}</span>
+              <button
+                type="button"
+                onClick={() => setError(null)}
+                className="ml-3 shrink-0 text-white"
+                aria-label="Dismiss error"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M4 4L12 12M12 4L4 12"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+            </div>
+          )}
+
           <Input
             onSubmit={handleSubmit}
             disabled={isGenerating}
