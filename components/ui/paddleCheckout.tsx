@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { initializePaddle, Paddle } from '@paddle/paddle-js'
 import { toast } from 'sonner'
@@ -19,10 +19,10 @@ export default function PaddleCheckout({ tier, interval, children, className }: 
   const { user } = useUser()
   const [paddle, setPaddle] = useState<Paddle>()
   const [loading, setLoading] = useState(false)
+  const activeTransactionIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    let activeTransactionId: string | null = null
 
     console.log('[Qorelytics Billing] Initializing Paddle checkout', { tier, interval })
 
@@ -50,9 +50,12 @@ export default function PaddleCheckout({ tier, interval, children, className }: 
             console.log('[Qorelytics Billing] Paddle event', event.name, event)
 
             if (event.name === 'checkout.completed') {
-              console.log('[Qorelytics Billing] Checkout completed', { transactionId: activeTransactionId })
+              const eventTransactionId = (event.data as { transaction_id?: string } | undefined)?.transaction_id
+              const transactionId = eventTransactionId ?? activeTransactionIdRef.current
+
+              console.log('[Qorelytics Billing] Checkout completed', { transactionId })
               window.dispatchEvent(new CustomEvent('qorelytics-billing-refresh', {
-                detail: { transactionId: activeTransactionId },
+                detail: { transactionId },
               }))
               router.refresh()
             }
@@ -110,10 +113,7 @@ export default function PaddleCheckout({ tier, interval, children, className }: 
         throw new Error('Checkout did not return a transaction ID')
       }
 
-      // Keep the transaction ID available to the Paddle event callback so the
-      // billing status endpoint can verify the completed transaction directly.
-      // The callback belongs to the Paddle instance created above.
-      ;(window as Window & { __qorelyticsPaddleTransactionId?: string }).__qorelyticsPaddleTransactionId = data.transactionId
+      activeTransactionIdRef.current = data.transactionId
       console.log('[Qorelytics Billing] Opening Paddle checkout', { transactionId: data.transactionId })
 
       paddle.Checkout.open({
