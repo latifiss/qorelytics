@@ -25,37 +25,37 @@ const Footer: React.FC = () => {
     {
       title: 'Use Cases',
       links: [
-        { label: 'Solo Entrepreneur', href: 'http://localhost:3000/blog/data-is-not-just-for-big-companies' },
-        { label: 'Startups', href: 'http://localhost:3000/blog/why-visualization-matters-for-startups' },
-        { label: 'Creators', href: 'http://localhost:3000/blog/building-better-products-starts-with-better-questions' },
-        { label: 'Freelancers', href: 'http://localhost:3000/blog/how-freelancers-can-get-more-from-their-data' },
+        { label: 'Solo Entrepreneur', href: 'https://qorelytics-nine.vercel.app/blog/data-is-not-just-for-big-companies' },
+        { label: 'Startups', href: 'https://qorelytics-nine.vercel.app/blog/why-visualization-matters-for-startups' },
+        { label: 'Creators', href: 'https://qorelytics-nine.vercel.app/blog/building-better-products-starts-with-better-questions' },
+        { label: 'Freelancers', href: 'https://qorelytics-nine.vercel.app/blog/how-freelancers-can-get-more-from-their-data' },
       ],
     },
     {
       title: 'Product',
       links: [
-        { label: 'New Chat', href: '/' },
-        { label: 'Pricing', href: '/pricing' },
-        { label: 'Blog', href: '/blog' },
-        { label: 'About', href: '/about' },
+        { label: 'New Chat', href: 'https://qorelytics-nine.vercel.app/' },
+        { label: 'Pricing', href: 'https://qorelytics-nine.vercel.app/pricing' },
+        { label: 'Blog', href: 'https://qorelytics-nine.vercel.app/blog' },
+        { label: 'About', href: 'https://qorelytics-nine.vercel.app/about' },
       ],
     },
     {
       title: 'Compare',
       links: [
-        { label: 'Qorelytics vs ChatGPT', href: 'http://localhost:3000/blog/qorelytics-vs-chatgpt' },
-        { label: 'Qorelytics vs Claude', href: 'http://localhost:3000/blog/qorelytics-vs-claude' },
-        { label: 'Qorelytics vs DeepSeek', href: 'http://localhost:3000/blog/qorelytics-vs-deepseek' },
-        { label: 'Qorelytics vs Perplexity', href: 'http://localhost:3000/blog/qorelytics-vs-perplexity' },
+        { label: 'Qorelytics vs ChatGPT', href: 'https://qorelytics-nine.vercel.app/blog/qorelytics-vs-chatgpt' },
+        { label: 'Qorelytics vs Claude', href: 'https://qorelytics-nine.vercel.app/blog/qorelytics-vs-claude' },
+        { label: 'Qorelytics vs DeepSeek', href: 'https://qorelytics-nine.vercel.app/blog/qorelytics-vs-deepseek' },
+        { label: 'Qorelytics vs Perplexity', href: 'https://qorelytics-nine.vercel.app/blog/qorelytics-vs-perplexity' },
       ],
     },
     {
       title: 'Legal',
       links: [
-        { label: 'Terms of Service', href: '/legal/terms' },
-        { label: 'Privacy Policy', href: '/legal/privacy' },
-        { label: 'Refund Policy', href: '/legal/refund' },
-        { label: 'Cookie Policy', href: '/legal/cookies' },
+        { label: 'Terms of Service', href: 'https://qorelytics-nine.vercel.app/terms' },
+        { label: 'Privacy Policy', href: 'https://qorelytics-nine.vercel.app/privacy' },
+        { label: 'Refund Policy', href: 'https://qorelytics-nine.vercel.app/refund' },
+        { label: 'Cookie Policy', href: 'https://qorelytics-nine.vercel.app/cookies' },
       ],
     },
   ];
@@ -118,7 +118,7 @@ const Footer: React.FC = () => {
           ))}
         </div>
 
-        <div className="mt-10 pt-6 border-t border-neutral-200 dark:border-neutral-800">
+        <div className="mt-10 pt-6">
           <p className="text-sm text-neutral-500 dark:text-neutral-400 text-center">
             &copy; {new Date().getFullYear()} Qorelytics. All rights reserved.
           </p>
