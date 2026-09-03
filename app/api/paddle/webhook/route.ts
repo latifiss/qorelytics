@@ -21,7 +21,7 @@ function verifyPaddleSignature(rawBody: string, signature: string, secret: strin
   if (!Number.isFinite(timestampNumber)) return false
 
   const age = Math.abs(Date.now() / 1000 - timestampNumber)
-  if (age > 5) return false
+  if (age > 5 * 60) return false
 
   const signedPayload = `${timestamp}:${rawBody}`
   const expected = createHmac('sha256', secret).update(signedPayload).digest('hex')
@@ -66,11 +66,38 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true })
   }
 
-  await prisma.paddleEvent.create({
-    data: { eventId, eventType },
-  })
+  if (eventType === 'transaction.completed') {
+    const transaction = event?.data
+    const customData = transaction?.custom_data
+    const userId = typeof customData?.userId === 'string' ? customData.userId : null
+    const priceId = transaction?.items?.[0]?.price?.id
+    const subscriptionId = transaction?.subscription_id
+
+    if (!userId || !priceId) {
+      return NextResponse.json({ error: 'Missing transaction billing metadata' }, { status: 400 })
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        tier: getTierFromPriceId(priceId),
+        ...(transaction?.customer_id ? { paddleCustomerId: transaction.customer_id } : {}),
+        ...(subscriptionId ? { paddleSubscriptionId: subscriptionId } : {}),
+        paddlePriceId: priceId,
+      },
+    })
+
+    await prisma.paddleEvent.create({
+      data: { eventId, eventType },
+    })
+
+    return NextResponse.json({ received: true })
+  }
 
   if (!eventType.startsWith('subscription.')) {
+    await prisma.paddleEvent.create({
+      data: { eventId, eventType },
+    })
     return NextResponse.json({ received: true })
   }
 
@@ -79,7 +106,7 @@ export async function POST(request: Request) {
   const userId = typeof customData?.userId === 'string' ? customData.userId : null
 
   if (!userId || !subscription?.id) {
-    return NextResponse.json({ received: true })
+    return NextResponse.json({ error: 'Missing subscription billing metadata' }, { status: 400 })
   }
 
   const priceId = subscription?.items?.[0]?.price?.id
@@ -101,6 +128,10 @@ export async function POST(request: Request) {
       paddlePriceId: priceId ?? null,
       paddleCurrentPeriodEnd: currentPeriodEnd,
     },
+  })
+
+  await prisma.paddleEvent.create({
+    data: { eventId, eventType },
   })
 
   return NextResponse.json({ received: true })
