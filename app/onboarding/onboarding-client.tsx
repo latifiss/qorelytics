@@ -144,13 +144,18 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     } else {
       setIsLoading(true);
 
-      await fetch("/api/onboarding", {
+      const response = await fetch("/api/onboarding", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
       });
+
+      if (!response.ok) {
+        setIsLoading(false);
+        return;
+      }
 
       setIsLoading(false);
       window.location.href = "/";
@@ -164,7 +169,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   };
 
   const handleSkip = async () => {
-    await fetch("/api/onboarding", {
+    if (isLoading) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    const response = await fetch("/api/onboarding", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -173,6 +184,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         skipped: true,
       }),
     });
+
+    if (!response.ok) {
+      setIsLoading(false);
+      return;
+    }
 
     window.location.href = "/";
   };
@@ -241,6 +257,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                   <Button
                     onClick={handleNext}
                     loading={isLoading}
+                    loadingText={currentStep === totalSteps - 1 ? 'Setting up you workspace...' : 'Loading...'}
                     disabled={isLoading}
                     size="md"
                   >
@@ -251,6 +268,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                       onClick={handleSkip}
                       variant="skip"
                       size="sm"
+                      disabled={isLoading}
                     >
                       Skip
                     </Button>
