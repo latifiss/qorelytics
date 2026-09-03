@@ -21,7 +21,7 @@ export default function PaddleCheckout({ tier, interval, children, className }: 
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const token = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN
+    const token = process.env.PADDLE_CLIENT_TOKEN
     if (!token) return
 
     initializePaddle({
