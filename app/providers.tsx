@@ -2,6 +2,7 @@
 
 import { ThemeProvider } from "@/context/themeContext";
 import { ChatProvider, useChat } from "@/context/chatContext";
+import PostHogAnalytics from "@/components/analytics/PostHogAnalytics";
 
 function ChatResetBoundary({ children }: { children: React.ReactNode }) {
   const { newChatVersion } = useChat();
@@ -17,7 +18,10 @@ export default function Providers({
   return (
     <ThemeProvider>
       <ChatProvider>
-        <ChatResetBoundary>{children}</ChatResetBoundary>
+        <ChatResetBoundary>
+          <PostHogAnalytics />
+          {children}
+        </ChatResetBoundary>
       </ChatProvider>
     </ThemeProvider>
   );
