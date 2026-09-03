@@ -257,7 +257,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                   <Button
                     onClick={handleNext}
                     loading={isLoading}
-                    loadingText={currentStep === totalSteps - 1 ? 'Setting up you workspace...' : 'Loading...'}
+                    loadingText={currentStep === totalSteps - 1 ? 'Setting up your workspace...' : 'Loading...'}
                     disabled={isLoading}
                     size="md"
                   >
