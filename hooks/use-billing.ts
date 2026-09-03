@@ -31,7 +31,7 @@ export function useBilling() {
         if (active && retries > 0 && data.tier === 'free') {
           refreshTimer = setTimeout(() => {
             void loadBilling(retries - 1)
-          }, 1000)
+          }, 1500)
         }
       } catch {
         // Keep the last known billing state.
@@ -44,7 +44,7 @@ export function useBilling() {
 
     const handleRefresh = () => {
       if (refreshTimer) clearTimeout(refreshTimer)
-      void loadBilling(10)
+      void loadBilling(20)
     }
 
     window.addEventListener('qorelytics-billing-refresh', handleRefresh)
