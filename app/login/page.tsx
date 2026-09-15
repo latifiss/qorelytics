@@ -20,13 +20,11 @@ const LoginPage = () => {
       alt: "Story 1",
     },
     {
-      image:
-        "/images/partb.jpg",
+      image: "/images/partb.jpg",
       alt: "Story 2",
     },
     {
-      image:
-        "/images/partc.jpg",
+      image: "/images/partc.jpg",
       alt: "Story 3",
     },
   ];
@@ -131,7 +129,7 @@ const LoginPage = () => {
           </h1>
 
           <p className="text-neutral-600 dark:text-neutral-400 text-center">
-            Sign up to get started with qorelytics and explore the world of data analytics with ease.
+            Log in to your Qorelytics account and continue exploring your data with ease.
           </p>
 
           <div className="flex flex-col gap-3 w-full mt-6">
@@ -149,12 +147,12 @@ const LoginPage = () => {
           </div>
 
           <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-4">
-            Already have an account?{" "}
+            Don&apos;t have an account?{" "}
             <a
-              href="/login"
+              href="/signin"
               className="text-neutral-900 dark:text-white font-medium hover:underline"
             >
-              Login instead
+              Sign up instead
             </a>
           </p>
         </div>
