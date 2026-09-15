@@ -19,7 +19,7 @@ export default async function Home() {
   });
 
   if (!session) {
-    redirect("/signin");
+    redirect("/about");
   }
 
   const profile = await prisma.profile.findUnique({
